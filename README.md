@@ -23,6 +23,16 @@ To see which user you are authenticated as:
 
 This will output JSON representing the currently authenticated user.
 
+To see a list of all users that exist for your AWS account:
+
+    $ s3-credentials list-users
+
+This will return pretty-printed JSON objects by default.
+
+Add `--nl` to collapse these to single lines as valid newline-delimited JSON.
+
+Add `--array` to output a valid JSON array of objects instead.
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
