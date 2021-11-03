@@ -4,35 +4,115 @@ from s3_credentials.cli import cli
 import json
 import pytest
 from unittest.mock import call, Mock
+from botocore.stub import Stubber
 
 
-def test_whoami(mocker):
-    boto3 = mocker.patch("boto3.client")
-    boto3().get_user.return_value = {"User": {"username": "name"}}
+@pytest.fixture
+def stub_client(mocker):
+    client = botocore.session.get_session().create_client("iam")
+    stubber = Stubber(client)
+    stubber.activate()
+    mocker.patch("s3_credentials.cli.make_client", return_value=client)
+    return stubber
+
+
+def test_whoami(mocker, stub_client):
+    stub_client.add_response(
+        "get_user",
+        {
+            "User": {
+                "Path": "/",
+                "UserName": "Name",
+                "UserId": "AID000000000000000000",
+                "Arn": "arn:aws:iam::000000000000:user/Name",
+                "CreateDate": "2020-01-01 00:00:00+00:00",
+            }
+        },
+    )
+
     runner = CliRunner()
     with runner.isolated_filesystem():
         result = runner.invoke(cli, ["whoami"])
         assert result.exit_code == 0
-        assert json.loads(result.output) == {"username": "name"}
+        assert json.loads(result.output) == {
+            "Path": "/",
+            "UserName": "Name",
+            "UserId": "AID000000000000000000",
+            "Arn": "arn:aws:iam::000000000000:user/Name",
+            "CreateDate": "2020-01-01 00:00:00+00:00",
+        }
 
 
 @pytest.mark.parametrize(
     "option,expected",
     (
-        ("", '{\n    "name": "one"\n}\n{\n    "name": "two"\n}\n'),
+        (
+            "",
+            "{\n"
+            '    "Path": "/",\n'
+            '    "UserName": "NameA",\n'
+            '    "UserId": "AID000000000000000001",\n'
+            '    "Arn": "arn:aws:iam::000000000000:user/NameB",\n'
+            '    "CreateDate": "2020-01-01 00:00:00+00:00"\n'
+            "}\n"
+            "{\n"
+            '    "Path": "/",\n'
+            '    "UserName": "NameA",\n'
+            '    "UserId": "AID000000000000000000",\n'
+            '    "Arn": "arn:aws:iam::000000000000:user/NameB",\n'
+            '    "CreateDate": "2020-01-01 00:00:00+00:00"\n'
+            "}\n",
+        ),
         (
             "--array",
-            '[\n    {\n        "name": "one"\n    },\n'
-            '    {\n        "name": "two"\n    }\n]\n',
+            "[\n"
+            "    {\n"
+            '        "Path": "/",\n'
+            '        "UserName": "NameA",\n'
+            '        "UserId": "AID000000000000000001",\n'
+            '        "Arn": "arn:aws:iam::000000000000:user/NameB",\n'
+            '        "CreateDate": "2020-01-01 00:00:00+00:00"\n'
+            "    },\n"
+            "    {\n"
+            '        "Path": "/",\n'
+            '        "UserName": "NameA",\n'
+            '        "UserId": "AID000000000000000000",\n'
+            '        "Arn": "arn:aws:iam::000000000000:user/NameB",\n'
+            '        "CreateDate": "2020-01-01 00:00:00+00:00"\n'
+            "    }\n"
+            "]\n"
+            "",
         ),
-        ("--nl", '{"name": "one"}\n{"name": "two"}\n'),
+        (
+            "--nl",
+            '{"Path": "/", "UserName": "NameA", "UserId": "AID000000000000000001", "Arn": "arn:aws:iam::000000000000:user/NameB", "CreateDate": "2020-01-01 00:00:00+00:00"}\n'
+            '{"Path": "/", "UserName": "NameA", "UserId": "AID000000000000000000", "Arn": "arn:aws:iam::000000000000:user/NameB", "CreateDate": "2020-01-01 00:00:00+00:00"}\n',
+        ),
     ),
 )
-def test_list_users(mocker, option, expected):
-    boto3 = mocker.patch("boto3.client")
-    boto3().get_paginator().paginate.return_value = [
-        {"Users": [{"name": "one"}, {"name": "two"}]}
-    ]
+def test_list_users(mocker, option, expected, stub_client):
+    stub_client.add_response(
+        "list_users",
+        {
+            "Users": [
+                {
+                    "Path": "/",
+                    "UserName": "NameA",
+                    "UserId": "AID000000000000000001",
+                    "Arn": "arn:aws:iam::000000000000:user/NameB",
+                    "CreateDate": "2020-01-01 00:00:00+00:00",
+                },
+                {
+                    "Path": "/",
+                    "UserName": "NameA",
+                    "UserId": "AID000000000000000000",
+                    "Arn": "arn:aws:iam::000000000000:user/NameB",
+                    "CreateDate": "2020-01-01 00:00:00+00:00",
+                },
+            ]
+        },
+    )
+
     runner = CliRunner()
     with runner.isolated_filesystem():
         result = runner.invoke(cli, ["list-users"] + ([option] if option else []))
@@ -85,10 +165,7 @@ def test_create(
     boto3 = mocker.patch("boto3.client")
     boto3.return_value = Mock()
     boto3.return_value.create_access_key.return_value = {
-        "AccessKey": {
-            "AccessKeyId": "access",
-            "SecretAccessKey": "secret",
-        }
+        "AccessKey": {"AccessKeyId": "access", "SecretAccessKey": "secret"}
     }
     runner = CliRunner()
     with runner.isolated_filesystem():
