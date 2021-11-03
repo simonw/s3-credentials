@@ -29,6 +29,7 @@ In this example I create credentials for reading and writing files in my `static
 
 ```
 % s3-credentials create static.niche-museums.com
+
 Created user: s3.read-write.static.niche-museums.com with permissions boundary: arn:aws:iam::aws:policy/AmazonS3FullAccess
 Attached policy s3.read-write.static.niche-museums.com to user s3.read-write.static.niche-museums.com
 Created access key for user: s3.read-write.static.niche-museums.com
@@ -64,7 +65,7 @@ Here's the full sequence of events that take place when you run this command:
 
 To see which user you are authenticated as:
 
-    $ s3-credentials whoami
+    s3-credentials whoami
 
 This will output JSON representing the currently authenticated user.
 
@@ -72,13 +73,50 @@ This will output JSON representing the currently authenticated user.
 
 To see a list of all users that exist for your AWS account:
 
-    $ s3-credentials list-users
+    s3-credentials list-users
 
 This will return pretty-printed JSON objects by default.
 
 Add `--nl` to collapse these to single lines as valid newline-delimited JSON.
 
 Add `--array` to output a valid JSON array of objects instead.
+
+### list-user-policies
+
+To see a list of inline policies belonging to users:
+
+```
+% s3-credentials list-user-policies s3.read-write.static.niche-museums.com
+
+User: s3.read-write.static.niche-museums.com
+PolicyName: s3.read-write.static.niche-museums.com
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ListObjectsInBucket",
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::static.niche-museums.com"
+            ]
+        },
+        {
+            "Sid": "AllObjectActions",
+            "Effect": "Allow",
+            "Action": "s3:*Object",
+            "Resource": [
+                "arn:aws:s3:::static.niche-museums.com/*"
+            ]
+        }
+    ]
+}
+```
+You can pass any number of usernames here. If you don't specify a username the tool will loop through every user belonging to your account:
+
+    s3-credentials list-user-policies
 
 ## Development
 

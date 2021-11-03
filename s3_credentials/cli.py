@@ -188,3 +188,29 @@ def list_users(array, nl):
                     click.echo(json.dumps(user, indent=4, default=str))
     if gathered:
         click.echo(json.dumps(gathered, indent=4, default=str))
+
+
+@cli.command()
+@click.argument("usernames", nargs=-1)
+def list_user_policies(usernames):
+    "List inline policies for specified user"
+    iam = boto3.client("iam")
+    if not usernames:
+        usernames = []
+        paginator = iam.get_paginator("list_users")
+        for response in paginator.paginate():
+            for user in response["Users"]:
+                usernames.append(user["UserName"])
+
+    paginator = iam.get_paginator("list_user_policies")
+    for username in usernames:
+        click.echo("User: {}".format(username))
+        for response in paginator.paginate(UserName=username):
+            for policy_name in response["PolicyNames"]:
+                click.echo("PolicyName: {}".format(policy_name))
+                policy_response = iam.get_user_policy(
+                    UserName=username, PolicyName=policy_name
+                )
+                click.echo(
+                    json.dumps(policy_response["PolicyDocument"], indent=4, default=str)
+                )
