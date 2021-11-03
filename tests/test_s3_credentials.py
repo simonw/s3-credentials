@@ -141,3 +141,44 @@ def test_list_user_policies(mocker):
             call().get_user_policy(UserName="two", PolicyName="policy-one"),
             call().get_user_policy(UserName="two", PolicyName="policy-two"),
         ]
+
+
+def test_delete_user(mocker):
+    boto3 = mocker.patch("boto3.client")
+    boto3.return_value = Mock()
+    boto3.return_value.get_user_policy.return_value = {
+        "PolicyDocument": {"policy": "here"}
+    }
+
+    def get_paginator(type):
+        m = Mock()
+        if type == "list_access_keys":
+            m.paginate.return_value = [
+                {"AccessKeyMetadata": [{"AccessKeyId": "one"}, {"AccessKeyId": "two"}]}
+            ]
+        elif type == "list_user_policies":
+            m.paginate.return_value = [{"PolicyNames": ["policy-one"]}]
+        return m
+
+    boto3().get_paginator.side_effect = get_paginator
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["delete-user", "user-123"], catch_exceptions=False)
+        assert result.exit_code == 0
+        assert result.output == (
+            "User: user-123\n"
+            "  Deleted policy: policy-one\n"
+            "  Deleted access key: one\n"
+            "  Deleted access key: two\n"
+            "  Deleted user\n"
+        )
+        assert boto3.mock_calls == [
+            call(),
+            call("iam"),
+            call().get_paginator("list_user_policies"),
+            call().get_paginator("list_access_keys"),
+            call().delete_user_policy(UserName="user-123", PolicyName="policy-one"),
+            call().delete_access_key(UserName="user-123", AccessKeyId="one"),
+            call().delete_access_key(UserName="user-123", AccessKeyId="two"),
+            call().delete_user(UserName="user-123"),
+        ]

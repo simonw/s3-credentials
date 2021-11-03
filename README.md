@@ -132,6 +132,23 @@ You can pass any number of usernames here. If you don't specify a username the t
 
     s3-credentials list-user-policies
 
+### delete-user
+
+In trying out this tool it's possible you will create several different user accounts that you later decide to clean up.
+
+Deleting AWS users is a little fiddly: you first need to delete their access keys, then their inline policies and finally the user themselves.
+
+The `s3-credentials delete-user` handles this for you:
+
+```
+% s3-credentials delete-user s3.read-write.simonw-test-bucket-10
+User: s3.read-write.simonw-test-bucket-10
+  Deleted policy: s3.read-write.simonw-test-bucket-10
+  Deleted access key: AKIAWXFXAIOZK3GPEIWR
+  Deleted user
+```
+You can pass it multiple usernames to delete multiple users at a time.
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:

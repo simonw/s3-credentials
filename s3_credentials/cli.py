@@ -233,3 +233,38 @@ def list_buckets(array, nl):
                 click.echo(json.dumps(bucket, indent=4, default=str))
     if gathered:
         click.echo(json.dumps(gathered, indent=4, default=str))
+
+
+@cli.command()
+@click.argument("usernames", nargs=-1, required=True)
+def delete_user(usernames):
+    "Delete specified users, their access keys and their inline policies"
+    iam = boto3.client("iam")
+    policy_paginator = iam.get_paginator("list_user_policies")
+    access_key_paginator = iam.get_paginator("list_access_keys")
+    for username in usernames:
+        click.echo("User: {}".format(username))
+        # Fetch and delete their policies
+        policy_names = []
+        for response in policy_paginator.paginate(UserName=username):
+            for policy_name in response["PolicyNames"]:
+                policy_names.append(policy_name)
+        for policy_name in policy_names:
+            iam.delete_user_policy(
+                UserName=username,
+                PolicyName=policy_name,
+            )
+            click.echo("  Deleted policy: {}".format(policy_name))
+        # Fetch and delete their access keys
+        access_key_ids = []
+        for response in access_key_paginator.paginate(UserName=username):
+            for access_key in response["AccessKeyMetadata"]:
+                access_key_ids.append(access_key["AccessKeyId"])
+        for access_key_id in access_key_ids:
+            iam.delete_access_key(
+                UserName=username,
+                AccessKeyId=access_key_id,
+            )
+            click.echo("  Deleted access key: {}".format(access_key_id))
+        iam.delete_user(UserName=username)
+        click.echo("  Deleted user")
