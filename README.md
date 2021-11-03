@@ -160,7 +160,6 @@ PolicyName: s3.read-write.static.niche-museums.com
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "ListObjectsInBucket",
       "Effect": "Allow",
       "Action": [
         "s3:ListBucket"
@@ -170,7 +169,6 @@ PolicyName: s3.read-write.static.niche-museums.com
       ]
     },
     {
-      "Sid": "AllObjectActions",
       "Effect": "Allow",
       "Action": "s3:*Object",
       "Resource": [
