@@ -43,8 +43,10 @@ def test_create(mocker):
     boto3 = mocker.patch("boto3.client")
     boto3.return_value = Mock()
     boto3.return_value.create_access_key.return_value = {
-        "Key": "key",
-        "Secret": "secret",
+        "AccessKey": {
+            "AccessKeyId": "access",
+            "SecretAccessKey": "secret",
+        }
     }
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -53,7 +55,7 @@ def test_create(mocker):
         assert result.output == (
             "Attached policy s3.read-write.pytest-bucket-simonw-1 to user s3.read-write.pytest-bucket-simonw-1\n"
             "Created access key for user: s3.read-write.pytest-bucket-simonw-1\n"
-            '{\n    "Key": "key",\n    "Secret": "secret"\n}\n'
+            '{\n    "AccessKeyId": "access",\n    "SecretAccessKey": "secret"\n}\n'
         )
         assert [str(c) for c in boto3.mock_calls] == [
             "call('s3')",
