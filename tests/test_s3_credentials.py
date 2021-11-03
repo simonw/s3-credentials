@@ -2,7 +2,7 @@ from click.testing import CliRunner
 from s3_credentials.cli import cli
 import json
 import pytest
-from unittest.mock import call, Mock
+from unittest.mock import Mock
 
 
 def test_whoami(mocker):
