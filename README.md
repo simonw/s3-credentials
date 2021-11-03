@@ -19,6 +19,10 @@ Install this tool using `pip`:
 
     $ pip install s3-credentials
 
+## Configuration
+
+This tool uses [boto3](https://boto3.amazonaws.com/) under the hood which supports [a number of different ways](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html) of providing your AWS credentials. If you have an existing `~/.aws/config` or `~/.aws/credentials` file the tool will use that - otherwise you can set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables before calling this tool.
+
 ## Usage
 
 The `s3-credentials create` command is the core feature of this tool. Pass it one or more S3 bucket names and it will create a new user with permission to access just those specific buckets, then create access credentials for that user and output them to your console.
