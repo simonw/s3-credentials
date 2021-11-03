@@ -39,6 +39,28 @@ def test_list_users(mocker, option, expected):
         assert result.output == expected
 
 
+@pytest.mark.parametrize(
+    "option,expected",
+    (
+        ("", '{\n    "name": "one"\n}\n{\n    "name": "two"\n}\n'),
+        (
+            "--array",
+            '[\n    {\n        "name": "one"\n    },\n'
+            '    {\n        "name": "two"\n    }\n]\n',
+        ),
+        ("--nl", '{"name": "one"}\n{"name": "two"}\n'),
+    ),
+)
+def test_list_buckets(mocker, option, expected):
+    boto3 = mocker.patch("boto3.client")
+    boto3().list_buckets.return_value = {"Buckets": [{"name": "one"}, {"name": "two"}]}
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["list-buckets"] + ([option] if option else []))
+        assert result.exit_code == 0
+        assert result.output == expected
+
+
 def test_create(mocker):
     boto3 = mocker.patch("boto3.client")
     boto3.return_value = Mock()

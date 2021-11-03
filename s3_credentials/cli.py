@@ -214,3 +214,22 @@ def list_user_policies(usernames):
                 click.echo(
                     json.dumps(policy_response["PolicyDocument"], indent=4, default=str)
                 )
+
+
+@cli.command()
+@click.option("--array", help="Output a valid JSON array", is_flag=True)
+@click.option("--nl", help="Output newline-delimited JSON", is_flag=True)
+def list_buckets(array, nl):
+    "List all buckets"
+    s3 = boto3.client("s3")
+    gathered = []
+    for bucket in s3.list_buckets()["Buckets"]:
+        if array:
+            gathered.append(bucket)
+        else:
+            if nl:
+                click.echo(json.dumps(bucket, default=str))
+            else:
+                click.echo(json.dumps(bucket, indent=4, default=str))
+    if gathered:
+        click.echo(json.dumps(gathered, indent=4, default=str))

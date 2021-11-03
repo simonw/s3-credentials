@@ -85,6 +85,14 @@ Add `--nl` to collapse these to single lines as valid newline-delimited JSON.
 
 Add `--array` to output a valid JSON array of objects instead.
 
+### list-buckets
+
+Shows a list of all buckets in your AWS account.
+
+    s3-credentials list-buckets
+
+Accepts the same `--nl` and `--array` options as `list-users`.
+
 ### list-user-policies
 
 To see a list of inline policies belonging to users:
