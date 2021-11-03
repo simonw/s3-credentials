@@ -27,6 +27,36 @@ def cli():
     "A tool for creating credentials for accessing S3 buckets"
 
 
+class PolicyParam(click.ParamType):
+    "Returns string of guaranteed well-formed JSON"
+    name = "policy"
+
+    def convert(self, policy, param, ctx):
+        if policy.strip().startswith("{"):
+            # Verify policy string is valid JSON
+            try:
+                json.loads(policy)
+            except ValueError:
+                self.fail("Invalid JSON string")
+            return policy
+        else:
+            # Assume policy is a file path or '-'
+            try:
+                with click.open_file(policy) as f:
+                    contents = f.read()
+                    try:
+                        json.loads(contents)
+                        return contents
+                    except ValueError:
+                        self.fail(
+                            "{} contained invalid JSON".format(
+                                "Input" if policy == "-" else "File"
+                            )
+                        )
+            except FileNotFoundError:
+                self.fail("File not found")
+
+
 @cli.command()
 @click.argument(
     "buckets",
@@ -42,6 +72,11 @@ def cli():
 )
 @click.option("--read-only", help="Only allow reading from the bucket", is_flag=True)
 @click.option("--write-only", help="Only allow writing to the bucket", is_flag=True)
+@click.option(
+    "--policy",
+    type=PolicyParam(),
+    help="Path to a policy.json file, or literal JSON string - $!BUCKET_NAME!$ will be replaced with the name of the bucket",
+)
 @click.option("--bucket-region", help="Region in which to create buckets")
 @click.option("--silent", help="Don't show performed steps", is_flag=True)
 @click.option(
@@ -58,6 +93,7 @@ def create(
     create_bucket,
     read_only,
     write_only,
+    policy,
     bucket_region,
     user_permissions_boundary,
     silent,
@@ -138,17 +174,19 @@ def create(
             permission=permission,
             bucket=bucket,
         )
-        policy = {}
-        if permission == "read-write":
-            policy = policies.read_write(bucket)
-        elif permission == "read-only":
-            policy = policies.read_only(bucket)
-        elif permission == "write-only":
-            policy = policies.write_only(bucket)
+        if policy:
+            policy_dict = json.loads(policy.replace("$!BUCKET_NAME!$", bucket))
         else:
-            assert False, "Unknown permission: {}".format(permission)
+            if permission == "read-write":
+                policy_dict = policies.read_write(bucket)
+            elif permission == "read-only":
+                policy_dict = policies.read_only(bucket)
+            elif permission == "write-only":
+                policy_dict = policies.write_only(bucket)
+            else:
+                assert False, "Unknown permission: {}".format(permission)
         iam.put_user_policy(
-            PolicyDocument=json.dumps(policy),
+            PolicyDocument=json.dumps(policy_dict),
             PolicyName=policy_name,
             UserName=username,
         )

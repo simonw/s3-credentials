@@ -53,6 +53,7 @@ The command has several additional options:
 - `-c, --create-bucket`: Create the buckts if they do not exist. Without this any missing buckets will be treated as an error.
 - `--read-only`: The user should only be allowed to read files from the bucket.-
 - `--write-only`: The user should only be allowed to write files to the bucket, but not read them. This is useful for logging use-cases.
+- `--policy filepath-or-string`: A custom policy document (as a file path, literal JSON string or `-` for standard input) - see below
 - `--bucket-region`: If creating buckets, the region in which they should be created.
 - `--silent`: Don't output details of what is happening, just output the JSON for the created access credentials at the end.
 - `--user-permissions-boundary`: Custom [permissions boundary](https://docs.aws.amazon.com`/IAM/latest/UserGuide/access_policies_boundaries.html) to use for users created by this tool. This will default to restricting those users to only interacting with S3, taking the `--read-only` option into account. Use `none` to create users without any permissions boundary at all.
@@ -64,6 +65,51 @@ Here's the full sequence of events that take place when you run this command:
 3. If a user with that username does not exist, create one with an S3 permissions boundary that respects the `--read-only` option - unless `--user-permissions-boundary=none` was passed (or a custom permissions boundary string).
 4. For each specified bucket, add an inline IAM policy to the user that gives them permission to either read-only, write-only or read-write against that bucket.
 5. Create a new access key for that user and output the key and its secret to the console.
+
+### Using a custom policy
+
+The policy documents applied by this tool can be seen in [policies.py](https://github.com/simonw/s3-credentials/blob/main/s3_credentials/policies.py). If you want to use a custom policy document you can do so using the `--policy` option.
+
+First, create your policy document as a JSON file that looks something like this:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject*", "s3:ListBucket"],
+      "Resource": [
+        "arn:aws:s3:::$!BUCKET_NAME!$",
+        "arn:aws:s3:::$!BUCKET_NAME!$/*"
+      ],
+    }
+  ]
+}
+```
+Note the `$!BUCKET_NAME!$` strings - these will be replaced with the name of the relevant S3 bucket before the policy is applied.
+
+Save that as `custom-policy.json` and apply it using the following command:
+
+    % s3-credentials create my-s3-bucket \
+        --policy custom-policy.json
+
+You can also pass `-` to read from standard input, or you can pass the literal JSON string directly to the `--policy` option:
+```
+% s3-credentials create my-s3-bucket --policy '{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject*", "s3:ListBucket"],
+      "Resource": [
+        "arn:aws:s3:::$!BUCKET_NAME!$",
+        "arn:aws:s3:::$!BUCKET_NAME!$/*"
+      ],
+    }
+  ]
+}'
+```
 
 ## Other commands
 

@@ -1,3 +1,4 @@
+import botocore
 from click.testing import CliRunner
 from s3_credentials.cli import cli
 import json
@@ -61,7 +62,20 @@ def test_list_buckets(mocker, option, expected):
         assert result.output == expected
 
 
-def test_create(mocker):
+CUSTOM_POLICY = '{"custom": "policy", "bucket": "$!BUCKET_NAME!$"}'
+DEFAULT_POLICY = '{"Version": "2012-10-17", "Statement": [{"Sid": "ListObjectsInBucket", "Effect": "Allow", "Action": ["s3:ListBucket"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Sid": "AllObjectActions", "Effect": "Allow", "Action": "s3:*Object", "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}'
+
+
+@pytest.mark.parametrize(
+    "custom_policy,policy_strategy",
+    (
+        (False, None),
+        (True, "filepath"),
+        (True, "stdin"),
+        (True, "string"),
+    ),
+)
+def test_create(mocker, tmpdir, custom_policy, policy_strategy):
     boto3 = mocker.patch("boto3.client")
     boto3.return_value = Mock()
     boto3.return_value.create_access_key.return_value = {
@@ -70,9 +84,25 @@ def test_create(mocker):
             "SecretAccessKey": "secret",
         }
     }
+    expected_policy = DEFAULT_POLICY
     runner = CliRunner()
     with runner.isolated_filesystem():
-        result = runner.invoke(cli, ["create", "pytest-bucket-simonw-1", "-c"])
+        args = ["create", "pytest-bucket-simonw-1", "-c"]
+        kwargs = {}
+        if policy_strategy:
+            expected_policy = CUSTOM_POLICY.replace(
+                "$!BUCKET_NAME!$", "pytest-bucket-simonw-1"
+            )
+        if policy_strategy == "filepath":
+            filepath = str(tmpdir / "policy.json")
+            open(filepath, "w").write(CUSTOM_POLICY)
+            args.extend(["--policy", filepath])
+        elif policy_strategy == "stdin":
+            kwargs["input"] = CUSTOM_POLICY
+            args.extend(["--policy", "-"])
+        elif policy_strategy == "string":
+            args.extend(["--policy", CUSTOM_POLICY])
+        result = runner.invoke(cli, args, **kwargs)
         assert result.exit_code == 0
         assert result.output == (
             "Attached policy s3.read-write.pytest-bucket-simonw-1 to user s3.read-write.pytest-bucket-simonw-1\n"
@@ -84,7 +114,9 @@ def test_create(mocker):
             "call('iam')",
             "call().head_bucket(Bucket='pytest-bucket-simonw-1')",
             "call().get_user(UserName='s3.read-write.pytest-bucket-simonw-1')",
-            'call().put_user_policy(PolicyDocument=\'{"Version": "2012-10-17", "Statement": [{"Sid": "ListObjectsInBucket", "Effect": "Allow", "Action": ["s3:ListBucket"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Sid": "AllObjectActions", "Effect": "Allow", "Action": "s3:*Object", "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}\', PolicyName=\'s3.read-write.pytest-bucket-simonw-1\', UserName=\'s3.read-write.pytest-bucket-simonw-1\')',
+            "call().put_user_policy(PolicyDocument='{}', PolicyName='s3.read-write.pytest-bucket-simonw-1', UserName='s3.read-write.pytest-bucket-simonw-1')".format(
+                expected_policy
+            ),
             "call().create_access_key(UserName='s3.read-write.pytest-bucket-simonw-1')",
         ]
 
@@ -182,3 +214,54 @@ def test_delete_user(mocker):
             call().delete_access_key(UserName="user-123", AccessKeyId="two"),
             call().delete_user(UserName="user-123"),
         ]
+
+
+@pytest.mark.parametrize(
+    "strategy,expected_error",
+    (
+        ("stdin", "Input contained invalid JSON"),
+        ("filepath", "File contained invalid JSON"),
+        ("string", "Invalid JSON string"),
+    ),
+)
+@pytest.mark.parametrize("use_valid_string", (True, False))
+def test_verify_create_policy_option(
+    tmpdir, mocker, strategy, expected_error, use_valid_string
+):
+    # Ensure "bucket does not exist" error to terminate after verification
+    boto3 = mocker.patch("boto3.client")
+    boto3.return_value.head_bucket.side_effect = botocore.exceptions.ClientError(
+        error_response={}, operation_name=""
+    )
+    if use_valid_string:
+        content = '{"policy": "..."}'
+    else:
+        content = "{Invalid JSON"
+    # Only used by strategy==filepath
+    filepath = str(tmpdir / "policy.json")
+    open(filepath, "w").write(content)
+
+    runner = CliRunner()
+    args = ["create", "my-bucket", "--policy"]
+    kwargs = {}
+    if strategy == "stdin":
+        args.append("-")
+        kwargs["input"] = content
+    elif strategy == "filepath":
+        args.append(filepath)
+    elif strategy == "string":
+        args.append(content)
+
+    result = runner.invoke(cli, args, **kwargs)
+    if use_valid_string:
+        assert result.exit_code == 1
+        assert (
+            result.output
+            == "Error: Bucket does not exist: my-bucket - try --create-bucket to create it\n"
+        )
+    else:
+        assert result.exit_code
+        assert (
+            "Error: Invalid value for '--policy': {}".format(expected_error)
+            in result.output
+        )
