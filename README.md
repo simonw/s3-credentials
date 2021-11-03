@@ -55,7 +55,7 @@ The command has several additional options:
 - `--write-only`: The user should only be allowed to write files to the bucket, but not read them. This is useful for logging use-cases.
 - `--bucket-region`: If creating buckets, the region in which they should be created.
 - `--silent`: Don't output details of what is happening, just output the JSON for the created access credentials at the end.
-`--user-permissions-boundary`: Custom [permissions boundary](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html) to use for users created by this tool. This will default to restricting those users to only interacting with S3, taking the `--read-only` option into account. Use `none` to create users without any permissions boundary at all.
+- `--user-permissions-boundary`: Custom [permissions boundary](https://docs.aws.amazon.com`/IAM/latest/UserGuide/access_policies_boundaries.html) to use for users created by this tool. This will default to restricting those users to only interacting with S3, taking the `--read-only` option into account. Use `none` to create users without any permissions boundary at all.
 
 Here's the full sequence of events that take place when you run this command:
 
