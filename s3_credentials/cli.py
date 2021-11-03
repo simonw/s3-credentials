@@ -1,3 +1,4 @@
+from re import A
 import boto3
 import botocore
 import click
@@ -19,6 +20,31 @@ def user_exists(iam, username):
         return True
     except iam.exceptions.NoSuchEntityException:
         return False
+
+
+def common_boto3_options(fn):
+    for decorator in reversed(
+        (
+            click.option(
+                "--access-key",
+                help="AWS access key ID",
+            ),
+            click.option(
+                "--secret-key",
+                help="AWS secret access key",
+            ),
+            click.option(
+                "--session-token",
+                help="AWS session token",
+            ),
+            click.option(
+                "--endpoint-url",
+                help="Custom endpoint URL",
+            ),
+        )
+    ):
+        fn = decorator(fn)
+    return fn
 
 
 @click.group()
@@ -87,6 +113,7 @@ class PolicyParam(click.ParamType):
         "--read-only and --write-only options."
     ),
 )
+@common_boto3_options
 def create(
     buckets,
     username,
@@ -97,6 +124,10 @@ def create(
     bucket_region,
     user_permissions_boundary,
     silent,
+    access_key,
+    secret_key,
+    session_token,
+    endpoint_url,
 ):
     "Create and return new AWS credentials for specified S3 buckets"
     if read_only and write_only:
@@ -113,8 +144,8 @@ def create(
         permission = "read-only"
     if write_only:
         permission = "write-only"
-    s3 = boto3.client("s3")
-    iam = boto3.client("iam")
+    s3 = make_client("s3", access_key, secret_key, session_token, endpoint_url)
+    iam = make_client("iam", access_key, secret_key, session_token, endpoint_url)
     # Verify buckets
     for bucket in buckets:
         # Create bucket if it doesn't exist
@@ -201,18 +232,20 @@ def create(
 
 
 @cli.command()
-def whoami():
+@common_boto3_options
+def whoami(access_key, secret_key, session_token, endpoint_url):
     "Identify currently authenticated user"
-    iam = boto3.client("iam")
+    iam = make_client("iam", access_key, secret_key, session_token, endpoint_url)
     click.echo(json.dumps(iam.get_user()["User"], indent=4, default=str))
 
 
 @cli.command()
 @click.option("--array", help="Output a valid JSON array", is_flag=True)
 @click.option("--nl", help="Output newline-delimited JSON", is_flag=True)
-def list_users(array, nl):
+@common_boto3_options
+def list_users(array, nl, access_key, secret_key, session_token, endpoint_url):
     "List all users"
-    iam = boto3.client("iam")
+    iam = make_client("iam", access_key, secret_key, session_token, endpoint_url)
     paginator = iam.get_paginator("list_users")
     gathered = []
     for response in paginator.paginate():
@@ -230,9 +263,10 @@ def list_users(array, nl):
 
 @cli.command()
 @click.argument("usernames", nargs=-1)
-def list_user_policies(usernames):
+@common_boto3_options
+def list_user_policies(usernames, access_key, secret_key, session_token, endpoint_url):
     "List inline policies for specified user"
-    iam = boto3.client("iam")
+    iam = make_client("iam", access_key, secret_key, session_token, endpoint_url)
     if not usernames:
         usernames = []
         paginator = iam.get_paginator("list_users")
@@ -257,9 +291,10 @@ def list_user_policies(usernames):
 @cli.command()
 @click.option("--array", help="Output a valid JSON array", is_flag=True)
 @click.option("--nl", help="Output newline-delimited JSON", is_flag=True)
-def list_buckets(array, nl):
+@common_boto3_options
+def list_buckets(array, nl, access_key, secret_key, session_token, endpoint_url):
     "List all buckets"
-    s3 = boto3.client("s3")
+    s3 = make_client("s3", access_key, secret_key, session_token, endpoint_url)
     gathered = []
     for bucket in s3.list_buckets()["Buckets"]:
         if array:
@@ -275,9 +310,10 @@ def list_buckets(array, nl):
 
 @cli.command()
 @click.argument("usernames", nargs=-1, required=True)
-def delete_user(usernames):
+@common_boto3_options
+def delete_user(usernames, access_key, secret_key, session_token, endpoint_url):
     "Delete specified users, their access keys and their inline policies"
-    iam = boto3.client("iam")
+    iam = make_client("iam", access_key, secret_key, session_token, endpoint_url)
     policy_paginator = iam.get_paginator("list_user_policies")
     access_key_paginator = iam.get_paginator("list_access_keys")
     for username in usernames:
@@ -306,3 +342,16 @@ def delete_user(usernames):
             click.echo("  Deleted access key: {}".format(access_key_id))
         iam.delete_user(UserName=username)
         click.echo("  Deleted user")
+
+
+def make_client(service, access_key, secret_key, session_token, endpoint_url):
+    kwargs = {}
+    if access_key:
+        kwargs["aws_access_key_id"] = access_key
+    if secret_key:
+        kwargs["aws_secret_access_key"] = secret_key
+    if session_token:
+        kwargs["aws_session_token"] = session_token
+    if endpoint_url:
+        kwargs["endpoint_url"] = endpoint_url
+    return boto3.client(service, **kwargs)

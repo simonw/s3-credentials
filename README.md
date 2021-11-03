@@ -23,7 +23,13 @@ Install this tool using `pip`:
 
 ## Configuration
 
-This tool uses [boto3](https://boto3.amazonaws.com/) under the hood which supports [a number of different ways](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html) of providing your AWS credentials. If you have an existing `~/.aws/config` or `~/.aws/credentials` file the tool will use that - otherwise you can set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables before calling this tool.
+This tool uses [boto3](https://boto3.amazonaws.com/) under the hood which supports [a number of different ways](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html) of providing your AWS credentials.
+
+If you have an existing `~/.aws/config` or `~/.aws/credentials` file the tool will use that.
+
+You can set the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables before calling this tool.
+
+You can also use the `--access-key=` and `--secret-key=` options documented below.
 
 ## Usage
 
@@ -151,27 +157,27 @@ To see a list of inline policies belonging to users:
 User: s3.read-write.static.niche-museums.com
 PolicyName: s3.read-write.static.niche-museums.com
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "ListObjectsInBucket",
-            "Effect": "Allow",
-            "Action": [
-                "s3:ListBucket"
-            ],
-            "Resource": [
-                "arn:aws:s3:::static.niche-museums.com"
-            ]
-        },
-        {
-            "Sid": "AllObjectActions",
-            "Effect": "Allow",
-            "Action": "s3:*Object",
-            "Resource": [
-                "arn:aws:s3:::static.niche-museums.com/*"
-            ]
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListObjectsInBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::static.niche-museums.com"
+      ]
+    },
+    {
+      "Sid": "AllObjectActions",
+      "Effect": "Allow",
+      "Action": "s3:*Object",
+      "Resource": [
+        "arn:aws:s3:::static.niche-museums.com/*"
+      ]
+    }
+  ]
 }
 ```
 You can pass any number of usernames here. If you don't specify a username the tool will loop through every user belonging to your account:
@@ -194,6 +200,15 @@ User: s3.read-write.simonw-test-bucket-10
   Deleted user
 ```
 You can pass it multiple usernames to delete multiple users at a time.
+
+## Common options
+
+All of the `s3-credentials` commands also accept the following options for authenticating against AWS:
+
+- `--access-key`: AWS access key ID
+- `--secret-key`: AWS secret access key
+- `--session-token`: AWS session token
+- `--endpoint-url`: Custom endpoint URL
 
 ## Development
 
