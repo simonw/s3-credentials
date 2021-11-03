@@ -2,7 +2,7 @@ from click.testing import CliRunner
 from s3_credentials.cli import cli
 import json
 import pytest
-from unittest.mock import Mock
+from unittest.mock import call, Mock
 
 
 def test_whoami(mocker):
@@ -109,13 +109,13 @@ def test_list_user_policies(mocker):
             '    "policy": "here"\n'
             "}\n"
         )
-        assert [str(c) for c in boto3.mock_calls] == [
-            "call()",
-            "call('iam')",
-            "call().get_paginator('list_users')",
-            "call().get_paginator('list_user_policies')",
-            "call().get_user_policy(UserName='one', PolicyName='policy-one')",
-            "call().get_user_policy(UserName='one', PolicyName='policy-two')",
-            "call().get_user_policy(UserName='two', PolicyName='policy-one')",
-            "call().get_user_policy(UserName='two', PolicyName='policy-two')",
+        assert boto3.mock_calls == [
+            call(),
+            call("iam"),
+            call().get_paginator("list_users"),
+            call().get_paginator("list_user_policies"),
+            call().get_user_policy(UserName="one", PolicyName="policy-one"),
+            call().get_user_policy(UserName="one", PolicyName="policy-two"),
+            call().get_user_policy(UserName="two", PolicyName="policy-one"),
+            call().get_user_policy(UserName="two", PolicyName="policy-two"),
         ]
