@@ -159,7 +159,7 @@ def create(
         UserName=username,
     )
     log("Created access key for user: {}".format(username))
-    click.echo(response)
+    click.echo(json.dumps(response, indent=4, default=str))
 
 
 @cli.command()
