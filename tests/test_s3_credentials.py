@@ -63,19 +63,25 @@ def test_list_buckets(mocker, option, expected):
 
 
 CUSTOM_POLICY = '{"custom": "policy", "bucket": "$!BUCKET_NAME!$"}'
-DEFAULT_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:ListBucket"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": "s3:*Object", "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}'
+READ_WRITE_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:ListBucket"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": "s3:*Object", "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}'
+READ_ONLY_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:ListBucket"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": "s3:GetObject*", "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}'
+WRITE_ONLY_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:PutObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}'
 
 
 @pytest.mark.parametrize(
-    "custom_policy,policy_strategy",
+    "options,use_policy_stdin,expected_policy,expected_name_fragment",
     (
-        (False, None),
-        (True, "filepath"),
-        (True, "stdin"),
-        (True, "string"),
+        ([], False, READ_WRITE_POLICY, "read-write"),
+        (["--read-only"], False, READ_ONLY_POLICY, "read-only"),
+        (["--write-only"], False, WRITE_ONLY_POLICY, "write-only"),
+        (["--policy", "POLICYFILEPATH"], False, CUSTOM_POLICY, "custom"),
+        (["--policy", "-"], True, CUSTOM_POLICY, "custom"),
+        (["--policy", CUSTOM_POLICY], False, CUSTOM_POLICY, "custom"),
     ),
 )
-def test_create(mocker, tmpdir, custom_policy, policy_strategy):
+def test_create(
+    mocker, tmpdir, options, use_policy_stdin, expected_policy, expected_name_fragment
+):
     boto3 = mocker.patch("boto3.client")
     boto3.return_value = Mock()
     boto3.return_value.create_access_key.return_value = {
@@ -84,40 +90,39 @@ def test_create(mocker, tmpdir, custom_policy, policy_strategy):
             "SecretAccessKey": "secret",
         }
     }
-    expected_policy = DEFAULT_POLICY
     runner = CliRunner()
     with runner.isolated_filesystem():
-        args = ["create", "pytest-bucket-simonw-1", "-c"]
+        filepath = str(tmpdir / "policy.json")
+        open(filepath, "w").write(CUSTOM_POLICY)
+        fixed_options = [
+            filepath if option == "POLICYFILEPATH" else option for option in options
+        ]
+        args = ["create", "pytest-bucket-simonw-1", "-c"] + fixed_options
         kwargs = {}
-        if policy_strategy:
-            expected_policy = CUSTOM_POLICY.replace(
-                "$!BUCKET_NAME!$", "pytest-bucket-simonw-1"
-            )
-        if policy_strategy == "filepath":
-            filepath = str(tmpdir / "policy.json")
-            open(filepath, "w").write(CUSTOM_POLICY)
-            args.extend(["--policy", filepath])
-        elif policy_strategy == "stdin":
+        if use_policy_stdin:
             kwargs["input"] = CUSTOM_POLICY
-            args.extend(["--policy", "-"])
-        elif policy_strategy == "string":
-            args.extend(["--policy", CUSTOM_POLICY])
         result = runner.invoke(cli, args, **kwargs)
         assert result.exit_code == 0
         assert result.output == (
-            "Attached policy s3.read-write.pytest-bucket-simonw-1 to user s3.read-write.pytest-bucket-simonw-1\n"
-            "Created access key for user: s3.read-write.pytest-bucket-simonw-1\n"
+            "Attached policy s3.NAME_FRAGMENT.pytest-bucket-simonw-1 to user s3.NAME_FRAGMENT.pytest-bucket-simonw-1\n"
+            "Created access key for user: s3.NAME_FRAGMENT.pytest-bucket-simonw-1\n"
             '{\n    "AccessKeyId": "access",\n    "SecretAccessKey": "secret"\n}\n'
-        )
+        ).replace("NAME_FRAGMENT", expected_name_fragment)
         assert [str(c) for c in boto3.mock_calls] == [
             "call('s3')",
             "call('iam')",
             "call().head_bucket(Bucket='pytest-bucket-simonw-1')",
-            "call().get_user(UserName='s3.read-write.pytest-bucket-simonw-1')",
-            "call().put_user_policy(PolicyDocument='{}', PolicyName='s3.read-write.pytest-bucket-simonw-1', UserName='s3.read-write.pytest-bucket-simonw-1')".format(
-                expected_policy
+            "call().get_user(UserName='s3.{}.pytest-bucket-simonw-1')".format(
+                expected_name_fragment
             ),
-            "call().create_access_key(UserName='s3.read-write.pytest-bucket-simonw-1')",
+            "call().put_user_policy(PolicyDocument='{}', PolicyName='s3.{}.pytest-bucket-simonw-1', UserName='s3.{}.pytest-bucket-simonw-1')".format(
+                expected_policy.replace("$!BUCKET_NAME!$", "pytest-bucket-simonw-1"),
+                expected_name_fragment,
+                expected_name_fragment,
+            ),
+            "call().create_access_key(UserName='s3.{}.pytest-bucket-simonw-1')".format(
+                expected_name_fragment
+            ),
         ]
 
 

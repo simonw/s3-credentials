@@ -173,7 +173,7 @@ def create(
     if not username:
         # Default username is "s3.read-write.bucket1,bucket2"
         username = "s3.{permission}.{buckets}".format(
-            permission=permission, buckets=",".join(buckets)
+            permission="custom" if policy else permission, buckets=",".join(buckets)
         )
     if not user_exists(iam, username):
         kwargs = {"UserName": username}
@@ -202,7 +202,7 @@ def create(
     # Add inline policies to the user so they can access the buckets
     for bucket in buckets:
         policy_name = "s3.{permission}.{bucket}".format(
-            permission=permission,
+            permission="custom" if policy else permission,
             bucket=bucket,
         )
         if policy:

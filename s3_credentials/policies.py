@@ -23,12 +23,14 @@ def read_only(bucket):
         "Statement": [
             {
                 "Effect": "Allow",
-                "Action": ["s3:GetObject*", "s3:ListBucket"],
-                "Resource": [
-                    "arn:aws:s3:::{}".format(bucket),
-                    "arn:aws:s3:::{}/*".format(bucket),
-                ],
-            }
+                "Action": ["s3:ListBucket"],
+                "Resource": ["arn:aws:s3:::{}".format(bucket)],
+            },
+            {
+                "Effect": "Allow",
+                "Action": "s3:GetObject*",
+                "Resource": ["arn:aws:s3:::{}/*".format(bucket)],
+            },
         ],
     }
 
