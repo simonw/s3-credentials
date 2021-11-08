@@ -214,6 +214,12 @@ You can see a log of changes made by this tool using AWS CloudTrail - the follow
 
 https://console.aws.amazon.com/cloudtrail/home
 
+You can view a list of your S3 buckets and confirm that they have the desired permissions and properties here:
+
+https://console.aws.amazon.com/s3/home
+
+The managiment interface for an individual bucket is at `https://console.aws.amazon.com/s3/buckets/NAME-OF-BUCKET`
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
