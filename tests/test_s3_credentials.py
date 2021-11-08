@@ -8,7 +8,7 @@ from botocore.stub import Stubber
 
 
 @pytest.fixture
-def stub_client(mocker):
+def stub_iam(mocker):
     client = botocore.session.get_session().create_client("iam")
     stubber = Stubber(client)
     stubber.activate()
@@ -16,8 +16,17 @@ def stub_client(mocker):
     return stubber
 
 
-def test_whoami(mocker, stub_client):
-    stub_client.add_response(
+@pytest.fixture
+def stub_s3(mocker):
+    client = botocore.session.get_session().create_client("s3")
+    stubber = Stubber(client)
+    stubber.activate()
+    mocker.patch("s3_credentials.cli.make_client", return_value=client)
+    return stubber
+
+
+def test_whoami(mocker, stub_iam):
+    stub_iam.add_response(
         "get_user",
         {
             "User": {
@@ -90,8 +99,8 @@ def test_whoami(mocker, stub_client):
         ),
     ),
 )
-def test_list_users(mocker, option, expected, stub_client):
-    stub_client.add_response(
+def test_list_users(mocker, option, expected, stub_iam):
+    stub_iam.add_response(
         "list_users",
         {
             "Users": [
@@ -123,18 +132,53 @@ def test_list_users(mocker, option, expected, stub_client):
 @pytest.mark.parametrize(
     "option,expected",
     (
-        ("", '{\n    "name": "one"\n}\n{\n    "name": "two"\n}\n'),
+        (
+            "",
+            "{\n"
+            '    "Name": "bucket-one",\n'
+            '    "CreationDate": "2020-01-01 00:00:00+00:00"\n'
+            "}\n"
+            "{\n"
+            '    "Name": "bucket-two",\n'
+            '    "CreationDate": "2020-02-01 00:00:00+00:00"\n'
+            "}\n",
+        ),
         (
             "--array",
-            '[\n    {\n        "name": "one"\n    },\n'
-            '    {\n        "name": "two"\n    }\n]\n',
+            "[\n"
+            "    {\n"
+            '        "Name": "bucket-one",\n'
+            '        "CreationDate": "2020-01-01 00:00:00+00:00"\n'
+            "    },\n"
+            "    {\n"
+            '        "Name": "bucket-two",\n'
+            '        "CreationDate": "2020-02-01 00:00:00+00:00"\n'
+            "    }"
+            "\n]\n",
         ),
-        ("--nl", '{"name": "one"}\n{"name": "two"}\n'),
+        (
+            "--nl",
+            '{"Name": "bucket-one", "CreationDate": "2020-01-01 00:00:00+00:00"}\n'
+            '{"Name": "bucket-two", "CreationDate": "2020-02-01 00:00:00+00:00"}\n',
+        ),
     ),
 )
-def test_list_buckets(mocker, option, expected):
-    boto3 = mocker.patch("boto3.client")
-    boto3().list_buckets.return_value = {"Buckets": [{"name": "one"}, {"name": "two"}]}
+def test_list_buckets(stub_s3, option, expected):
+    stub_s3.add_response(
+        "list_buckets",
+        {
+            "Buckets": [
+                {
+                    "Name": "bucket-one",
+                    "CreationDate": "2020-01-01 00:00:00+00:00",
+                },
+                {
+                    "Name": "bucket-two",
+                    "CreationDate": "2020-02-01 00:00:00+00:00",
+                },
+            ]
+        },
+    )
     runner = CliRunner()
     with runner.isolated_filesystem():
         result = runner.invoke(cli, ["list-buckets"] + ([option] if option else []))
