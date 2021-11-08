@@ -208,6 +208,12 @@ All of the `s3-credentials` commands also accept the following options for authe
 - `--session-token`: AWS session token
 - `--endpoint-url`: Custom endpoint URL
 
+## Tips
+
+You can see a log of changes made by this tool using AWS CloudTrail - the following link should provide an Event History interface showing revelant changes made to your AWS account such as `CreateAccessKey`, `CreateUser`, `PutUserPolicy` and more:
+
+https://console.aws.amazon.com/cloudtrail/home
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
