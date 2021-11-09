@@ -289,14 +289,47 @@ def list_user_policies(usernames, access_key, secret_key, session_token, endpoin
 
 
 @cli.command()
+@click.argument("buckets", nargs=-1)
+@click.option("--details", help="Include extra bucket details (slower)", is_flag=True)
 @click.option("--array", help="Output a valid JSON array", is_flag=True)
 @click.option("--nl", help="Output newline-delimited JSON", is_flag=True)
 @common_boto3_options
-def list_buckets(array, nl, access_key, secret_key, session_token, endpoint_url):
-    "List all buckets"
+def list_buckets(
+    buckets, details, array, nl, access_key, secret_key, session_token, endpoint_url
+):
+    "List buckets - defaults to all, or pass one or more bucket names"
     s3 = make_client("s3", access_key, secret_key, session_token, endpoint_url)
     gathered = []
     for bucket in s3.list_buckets()["Buckets"]:
+        if buckets and (bucket["Name"] not in buckets):
+            continue
+        if details:
+            bucket_acl = dict(
+                (key, value)
+                for key, value in s3.get_bucket_acl(
+                    Bucket=bucket["Name"],
+                ).items()
+                if key != "ResponseMetadata"
+            )
+            try:
+                pab = s3.get_public_access_block(
+                    Bucket=bucket["Name"],
+                )["PublicAccessBlockConfiguration"]
+            except s3.exceptions.ClientError:
+                pab = None
+            try:
+                bucket_website = dict(
+                    (key, value)
+                    for key, value in s3.get_bucket_website(
+                        Bucket=bucket["Name"],
+                    ).items()
+                    if key != "ResponseMetadata"
+                )
+            except s3.exceptions.ClientError:
+                bucket_website = None
+            bucket["bucket_acl"] = bucket_acl
+            bucket["public_access_block"] = pab
+            bucket["bucket_website"] = bucket_website
         if array:
             gathered.append(bucket)
         else:

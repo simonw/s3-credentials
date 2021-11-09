@@ -130,10 +130,10 @@ def test_list_users(mocker, option, expected, stub_iam):
 
 
 @pytest.mark.parametrize(
-    "option,expected",
+    "options,expected",
     (
         (
-            "",
+            [],
             "{\n"
             '    "Name": "bucket-one",\n'
             '    "CreationDate": "2020-01-01 00:00:00+00:00"\n'
@@ -144,7 +144,7 @@ def test_list_users(mocker, option, expected, stub_iam):
             "}\n",
         ),
         (
-            "--array",
+            ["--array"],
             "[\n"
             "    {\n"
             '        "Name": "bucket-one",\n'
@@ -157,13 +157,17 @@ def test_list_users(mocker, option, expected, stub_iam):
             "\n]\n",
         ),
         (
-            "--nl",
+            ["--nl"],
             '{"Name": "bucket-one", "CreationDate": "2020-01-01 00:00:00+00:00"}\n'
             '{"Name": "bucket-two", "CreationDate": "2020-02-01 00:00:00+00:00"}\n',
         ),
+        (
+            ["--nl", "bucket-one"],
+            '{"Name": "bucket-one", "CreationDate": "2020-01-01 00:00:00+00:00"}\n',
+        ),
     ),
 )
-def test_list_buckets(stub_s3, option, expected):
+def test_list_buckets(stub_s3, options, expected):
     stub_s3.add_response(
         "list_buckets",
         {
@@ -181,9 +185,101 @@ def test_list_buckets(stub_s3, option, expected):
     )
     runner = CliRunner()
     with runner.isolated_filesystem():
-        result = runner.invoke(cli, ["list-buckets"] + ([option] if option else []))
+        result = runner.invoke(cli, ["list-buckets"] + options)
         assert result.exit_code == 0
         assert result.output == expected
+
+
+def test_list_buckets_details(stub_s3):
+    stub_s3.add_response(
+        "list_buckets",
+        {
+            "Buckets": [
+                {
+                    "Name": "bucket-one",
+                    "CreationDate": "2020-01-01 00:00:00+00:00",
+                }
+            ]
+        },
+    )
+    stub_s3.add_response(
+        "get_bucket_acl",
+        {
+            "Owner": {
+                "DisplayName": "swillison",
+                "ID": "36b2eeee501c5952a8ac119f9e5212277a4c01eccfa8d6a9d670bba1e2d5f441",
+            },
+            "Grants": [
+                {
+                    "Grantee": {
+                        "DisplayName": "swillison",
+                        "ID": "36b2eeee501c5952a8ac119f9e5212277a4c01eccfa8d6a9d670bba1e2d5f441",
+                        "Type": "CanonicalUser",
+                    },
+                    "Permission": "FULL_CONTROL",
+                }
+            ],
+            "ResponseMetadata": {},
+        },
+    )
+    stub_s3.add_response(
+        "get_public_access_block",
+        {
+            "PublicAccessBlockConfiguration": {
+                "BlockPublicAcls": True,
+                "IgnorePublicAcls": True,
+                "BlockPublicPolicy": True,
+                "RestrictPublicBuckets": True,
+            },
+        },
+    )
+    stub_s3.add_response(
+        "get_bucket_website",
+        {
+            "IndexDocument": {"Suffix": "index.html"},
+            "ErrorDocument": {"Key": "error.html"},
+        },
+    )
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["list-buckets", "--details"])
+        assert result.exit_code == 0
+        assert result.output == (
+            "{\n"
+            '    "Name": "bucket-one",\n'
+            '    "CreationDate": "2020-01-01 00:00:00+00:00",\n'
+            '    "bucket_acl": {\n'
+            '        "Owner": {\n'
+            '            "DisplayName": "swillison",\n'
+            '            "ID": "36b2eeee501c5952a8ac119f9e5212277a4c01eccfa8d6a9d670bba1e2d5f441"\n'
+            "        },\n"
+            '        "Grants": [\n'
+            "            {\n"
+            '                "Grantee": {\n'
+            '                    "DisplayName": "swillison",\n'
+            '                    "ID": "36b2eeee501c5952a8ac119f9e5212277a4c01eccfa8d6a9d670bba1e2d5f441",\n'
+            '                    "Type": "CanonicalUser"\n'
+            "                },\n"
+            '                "Permission": "FULL_CONTROL"\n'
+            "            }\n"
+            "        ]\n"
+            "    },\n"
+            '    "public_access_block": {\n'
+            '        "BlockPublicAcls": true,\n'
+            '        "IgnorePublicAcls": true,\n'
+            '        "BlockPublicPolicy": true,\n'
+            '        "RestrictPublicBuckets": true\n'
+            "    },\n"
+            '    "bucket_website": {\n'
+            '        "IndexDocument": {\n'
+            '            "Suffix": "index.html"\n'
+            "        },\n"
+            '        "ErrorDocument": {\n'
+            '            "Key": "error.html"\n'
+            "        }\n"
+            "    }\n"
+            "}\n"
+        )
 
 
 CUSTOM_POLICY = '{"custom": "policy", "bucket": "$!BUCKET_NAME!$"}'

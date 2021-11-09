@@ -143,9 +143,91 @@ Add `--array` to output a valid JSON array of objects instead.
 
 Shows a list of all buckets in your AWS account.
 
-    s3-credentials list-buckets
+    % s3-credentials list-buckets
+    {
+        "Name": "aws-cloudtrail-logs-462092780466-f2c900d3",
+        "CreationDate": "2021-03-25 22:19:54+00:00"
+    }
+    {
+        "Name": "simonw-test-bucket-for-s3-credentials",
+        "CreationDate": "2021-11-03 21:46:12+00:00"
+    }
 
-Accepts the same `--nl` and `--array` options as `list-users`.
+With no extra arguments this will show all available buckets - you can also add one or more explicit bucket names to see just those buckets:
+
+    % s3-credentials list-buckets simonw-test-bucket-for-s3-credentials
+    {
+        "Name": "simonw-test-bucket-for-s3-credentials",
+        "CreationDate": "2021-11-03 21:46:12+00:00"
+    }
+
+This accepts the same `--nl` and `--array` options as `list-users`.
+
+Add `--details` to include details of the bucket ACL, website configuration and public access block settings. This is useful for running a security audit of your buckets.
+
+Using `--details` adds three additional API calls for each bucket, so it is advisable to use it with one or more explicit bucket names.
+```
+% s3-credentials list-buckets simonw-test-public-website-bucket --details
+{
+  "Name": "simonw-test-public-website-bucket",
+  "CreationDate": "2021-11-08 22:53:30+00:00",
+  "bucket_acl": {
+    "Owner": {
+      "DisplayName": "simon",
+      "ID": "abcdeabcdeabcdeabcdeabcdeabcde0001"
+    },
+    "Grants": [
+      {
+        "Grantee": {
+          "DisplayName": "simon",
+          "ID": "abcdeabcdeabcdeabcdeabcdeabcde0001",
+          "Type": "CanonicalUser"
+        },
+        "Permission": "FULL_CONTROL"
+      }
+    ]
+  },
+  "public_access_block": null,
+  "bucket_website": {
+    "IndexDocument": {
+      "Suffix": "index.html"
+    },
+    "ErrorDocument": {
+      "Key": "error.html"
+    }
+  }
+}
+```
+A bucket with `public_access_block` might look like this:
+```json
+{
+  "Name": "aws-cloudtrail-logs-462092780466-f2c900d3",
+  "CreationDate": "2021-03-25 22:19:54+00:00",
+  "bucket_acl": {
+    "Owner": {
+      "DisplayName": "simon",
+      "ID": "abcdeabcdeabcdeabcdeabcdeabcde0001"
+    },
+    "Grants": [
+      {
+        "Grantee": {
+          "DisplayName": "simon",
+          "ID": "abcdeabcdeabcdeabcdeabcdeabcde0001",
+          "Type": "CanonicalUser"
+        },
+        "Permission": "FULL_CONTROL"
+      }
+    ]
+  },
+  "public_access_block": {
+    "BlockPublicAcls": true,
+    "IgnorePublicAcls": true,
+    "BlockPublicPolicy": true,
+    "RestrictPublicBuckets": true
+  },
+  "bucket_website": null
+}
+```
 
 ### list-user-policies
 
