@@ -343,6 +343,21 @@ def test_create(
         ]
 
 
+def test_create_format_ini(mocker):
+    boto3 = mocker.patch("boto3.client")
+    boto3.return_value = Mock()
+    boto3.return_value.create_access_key.return_value = {
+        "AccessKey": {"AccessKeyId": "access", "SecretAccessKey": "secret"}
+    }
+    runner = CliRunner(mix_stderr=False)
+    result = runner.invoke(
+        cli,
+        ["create", "test-bucket", "-c", "-f", "ini"],
+    )
+    assert result.exit_code == 0
+    assert result.stdout == "aws_access_key_id=access\naws_secret_access_key=secret\n"
+
+
 def test_list_user_policies(mocker):
     boto3 = mocker.patch("boto3.client")
     boto3.return_value = Mock()

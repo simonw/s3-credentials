@@ -89,6 +89,14 @@ class PolicyParam(click.ParamType):
     nargs=-1,
     required=True,
 )
+@click.option(
+    "format_",
+    "-f",
+    "--format",
+    type=click.Choice(["ini", "json"]),
+    default="json",
+    help="Output format for credentials",
+)
 @click.option("--username", help="Username to create or existing user to use")
 @click.option(
     "-c",
@@ -116,6 +124,7 @@ class PolicyParam(click.ParamType):
 @common_boto3_options
 def create(
     buckets,
+    format_,
     username,
     create_bucket,
     read_only,
@@ -228,7 +237,15 @@ def create(
         UserName=username,
     )
     log("Created access key for user: {}".format(username))
-    click.echo(json.dumps(response["AccessKey"], indent=4, default=str))
+    if format_ == "ini":
+        click.echo(
+            ("aws_access_key_id={}\n" "aws_secret_access_key={}").format(
+                response["AccessKey"]["AccessKeyId"],
+                response["AccessKey"]["SecretAccessKey"],
+            )
+        )
+    elif format_ == "json":
+        click.echo(json.dumps(response["AccessKey"], indent=4, default=str))
 
 
 @cli.command()

@@ -53,8 +53,19 @@ Created access key for user: s3.read-write.static.niche-museums.com
     "CreateDate": "2021-11-03 01:38:24+00:00"
 }
 ```
-The command has several additional options:
+Use `--format ini` to output the credentials in INI format, suitable for pasting into a `~/.aws/credentials` file:
+```
+% s3-credentials create static.niche-museums.com --format ini > ini.txt
+Created user: s3.read-write.static.niche-museums.com with permissions boundary: arn:aws:iam::aws:policy/AmazonS3FullAccess
+Attached policy s3.read-write.static.niche-museums.com to user s3.read-write.static.niche-museums.com
+Created access key for user: s3.read-write.static.niche-museums.com
+% cat ini.txt
+aws_access_key_id=AKIAWXFXAIOZKGXI4PVO
+aws_secret_access_key=...
+````
+The `create` command has several additional options:
 
+- `--format TEXT`: The output format to use. Defaults to `json`, but can also be `ini`.
 - `--username TEXT`: The username to use for the user that is created by the command (or the username of an existing user if you do not want to create a new one). If ommitted a default such as `s3.read-write.static.niche-museums.com` will be used.
 - `-c, --create-bucket`: Create the buckts if they do not exist. Without this any missing buckets will be treated as an error.
 - `--read-only`: The user should only be allowed to read files from the bucket.-
