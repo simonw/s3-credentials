@@ -18,7 +18,7 @@ def read_write(bucket):
 
 
 def read_only(bucket):
-    return {"Version": "2012-10-17", "Statement": read_only_statements(bucket)}
+    return _policy(read_only_statements(bucket))
 
 
 def read_only_statements(bucket):
@@ -44,13 +44,19 @@ def read_only_statements(bucket):
 
 
 def write_only(bucket):
-    return {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Action": ["s3:PutObject"],
-                "Resource": ["arn:aws:s3:::{}/*".format(bucket)],
-            }
-        ],
-    }
+    return _policy(write_only_statements(bucket))
+
+
+def write_only_statements(bucket):
+    # https://github.com/simonw/s3-credentials/issues/25
+    return [
+        {
+            "Effect": "Allow",
+            "Action": ["s3:PutObject"],
+            "Resource": ["arn:aws:s3:::{}/*".format(bucket)],
+        }
+    ]
+
+
+def _policy(statements):
+    return {"Version": "2012-10-17", "Statement": statements}
