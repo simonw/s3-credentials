@@ -1,20 +1,16 @@
 def read_write(bucket):
-    # https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_examples_s3_rw-bucket.html
-    return {
-        "Version": "2012-10-17",
-        "Statement": [
-            {
-                "Effect": "Allow",
-                "Action": ["s3:ListBucket"],
-                "Resource": ["arn:aws:s3:::{}".format(bucket)],
-            },
-            {
-                "Effect": "Allow",
-                "Action": "s3:*Object",
-                "Resource": ["arn:aws:s3:::{}/*".format(bucket)],
-            },
-        ],
-    }
+    return _policy(read_write_statements(bucket))
+
+
+def read_write_statements(bucket):
+    # https://github.com/simonw/s3-credentials/issues/24
+    return read_only_statements(bucket) + [
+        {
+            "Effect": "Allow",
+            "Action": ["s3:PutObject", "s3:DeleteObject"],
+            "Resource": ["arn:aws:s3:::{}/*".format(bucket)],
+        }
+    ]
 
 
 def read_only(bucket):
