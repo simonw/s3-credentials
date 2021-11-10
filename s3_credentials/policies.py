@@ -26,7 +26,7 @@ def read_only_statements(bucket):
     return [
         {
             "Effect": "Allow",
-            "Action": ["s3:ListBucket"],
+            "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
             "Resource": ["arn:aws:s3:::{}".format(bucket)],
         },
         {
