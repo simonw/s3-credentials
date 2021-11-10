@@ -502,3 +502,60 @@ def test_verify_create_policy_option(
             "Error: Invalid value for '--policy': {}".format(expected_error)
             in result.output
         )
+
+
+@pytest.mark.parametrize(
+    "content",
+    (
+        '{"AccessKeyId": "access", "SecretAccessKey": "secret"}',
+        "[default]\naws_access_key_id=access\naws_secret_access_key=secret",
+    ),
+)
+@pytest.mark.parametrize("use_stdin", (True, False))
+def test_auth_option(tmpdir, mocker, content, use_stdin):
+    boto3 = mocker.patch("boto3.client")
+    boto3.return_value = Mock()
+    boto3().get_paginator().paginate.return_value = [{"Users": []}]
+
+    filepath = None
+    if use_stdin:
+        input = content
+        arg = "-"
+    else:
+        input = None
+        filepath = str(tmpdir / "input")
+        open(filepath, "w").write(content)
+        arg = filepath
+
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, ["list-users", "-a", arg], catch_exceptions=False, input=input
+        )
+        assert result.exit_code == 0
+
+    assert boto3.mock_calls == [
+        call(),
+        call().get_paginator(),
+        call("iam", aws_access_key_id="access", aws_secret_access_key="secret"),
+        call().get_paginator("list_users"),
+        call().get_paginator().paginate(),
+    ]
+
+
+@pytest.mark.parametrize(
+    "extra_option", ["--access-key", "--secret-key", "--session-token"]
+)
+def test_auth_option_errors(extra_option):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["list-users", "-a", "-", extra_option, "blah"],
+        catch_exceptions=False,
+        input="",
+    )
+    assert result.exit_code == 1
+    assert (
+        result.output
+        == "Error: --auth cannot be used with --access-key, --secret-key or --session-token\n"
+    )
