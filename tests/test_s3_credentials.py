@@ -406,18 +406,24 @@ def test_create_duration(
             '    "SessionToken": "session"\n'
             "}\n"
         )
-        assert [str(c) for c in mocked_for_duration.mock_calls] == [
-            "call('s3')",
-            "call('iam')",
-            "call('sts')",
-            "call().head_bucket(Bucket='pytest-bucket-simonw-1')",
-            "call().get_caller_identity()",
-            "call().get_role(RoleName='s3-credentials.AmazonS3FullAccess')",
-            "call().assume_role(RoleArn='arn:::role', RoleSessionName='s3.{fragment}.pytest-bucket-simonw-1', Policy='{policy}', DurationSeconds=900)".format(
-                fragment=expected_name_fragment,
-                policy=expected_policy.replace(
-                    "$!BUCKET_NAME!$", "pytest-bucket-simonw-1"
+        assert mocked_for_duration.mock_calls == [
+            call("s3"),
+            call("iam"),
+            call("sts"),
+            call().head_bucket(Bucket="pytest-bucket-simonw-1"),
+            call().get_caller_identity(),
+            call().get_role(RoleName="s3-credentials.AmazonS3FullAccess"),
+            call().assume_role(
+                RoleArn="arn:::role",
+                RoleSessionName="s3.{fragment}.pytest-bucket-simonw-1".format(
+                    fragment=expected_name_fragment
                 ),
+                Policy="{policy}".format(
+                    policy=expected_policy.replace(
+                        "$!BUCKET_NAME!$", "pytest-bucket-simonw-1"
+                    ),
+                ),
+                DurationSeconds=900,
             ),
         ]
 
