@@ -242,9 +242,21 @@ def create(
             Policy=json.dumps(bucket_access_policy),
             DurationSeconds=duration,
         )
-        click.echo(
-            json.dumps(credentials_response["Credentials"], indent=4, default=str)
-        )
+        if format_ == "ini":
+            click.echo(
+                (
+                    "[default]\naws_access_key_id={}\n"
+                    "aws_secret_access_key={}\naws_session_token={}"
+                ).format(
+                    credentials_response["Credentials"]["AccessKeyId"],
+                    credentials_response["Credentials"]["SecretAccessKey"],
+                    credentials_response["Credentials"]["SessionToken"],
+                )
+            )
+        else:
+            click.echo(
+                json.dumps(credentials_response["Credentials"], indent=4, default=str)
+            )
         return
     # No duration, so wo create a new user so we can issue non-expiring credentials
     if not username:
@@ -307,7 +319,7 @@ def create(
     log("Created access key for user: {}".format(username))
     if format_ == "ini":
         click.echo(
-            ("aws_access_key_id={}\n" "aws_secret_access_key={}").format(
+            ("[default]\naws_access_key_id={}\n" "aws_secret_access_key={}").format(
                 response["AccessKey"]["AccessKeyId"],
                 response["AccessKey"]["SecretAccessKey"],
             )

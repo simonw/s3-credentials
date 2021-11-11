@@ -348,13 +348,8 @@ def test_create(
         ]
 
 
-@pytest.mark.parametrize(
-    "options,use_policy_stdin,expected_policy,expected_name_fragment",
-    CREATE_TESTS,
-)
-def test_create_duration(
-    mocker, tmpdir, options, use_policy_stdin, expected_policy, expected_name_fragment
-):
+@pytest.fixture
+def mocked_for_duration(mocker):
     boto3 = mocker.patch("boto3.client")
     boto3.return_value = Mock()
     boto3.return_value.create_access_key.return_value = {
@@ -363,8 +358,27 @@ def test_create_duration(
     boto3.return_value.get_caller_identity.return_value = {"Account": "1234"}
     boto3.return_value.get_role.return_value = {"Role": {"Arn": "arn:::role"}}
     boto3.return_value.assume_role.return_value = {
-        "Credentials": {"AccessKeyId": "access", "SecretAccessKey": "secret"}
+        "Credentials": {
+            "AccessKeyId": "access",
+            "SecretAccessKey": "secret",
+            "SessionToken": "session",
+        }
     }
+    return boto3
+
+
+@pytest.mark.parametrize(
+    "options,use_policy_stdin,expected_policy,expected_name_fragment",
+    CREATE_TESTS,
+)
+def test_create_duration(
+    mocked_for_duration,
+    tmpdir,
+    options,
+    use_policy_stdin,
+    expected_policy,
+    expected_name_fragment,
+):
     runner = CliRunner()
     with runner.isolated_filesystem():
         filepath = str(tmpdir / "policy.json")
@@ -386,9 +400,13 @@ def test_create_duration(
         assert result.exit_code == 0
         assert result.output == (
             "Assume role against arn:::role for 900s\n"
-            '{\n    "AccessKeyId": "access",\n    "SecretAccessKey": "secret"\n}\n'
+            "{\n"
+            '    "AccessKeyId": "access",\n'
+            '    "SecretAccessKey": "secret",\n'
+            '    "SessionToken": "session"\n'
+            "}\n"
         )
-        assert [str(c) for c in boto3.mock_calls] == [
+        assert [str(c) for c in mocked_for_duration.mock_calls] == [
             "call('s3')",
             "call('iam')",
             "call('sts')",
@@ -408,7 +426,11 @@ def test_create_format_ini(mocker):
     boto3 = mocker.patch("boto3.client")
     boto3.return_value = Mock()
     boto3.return_value.create_access_key.return_value = {
-        "AccessKey": {"AccessKeyId": "access", "SecretAccessKey": "secret"}
+        "AccessKey": {
+            "AccessKeyId": "access",
+            "SecretAccessKey": "secret",
+            "SessionToken": "session",
+        }
     }
     runner = CliRunner(mix_stderr=False)
     result = runner.invoke(
@@ -416,7 +438,26 @@ def test_create_format_ini(mocker):
         ["create", "test-bucket", "-c", "-f", "ini"],
     )
     assert result.exit_code == 0
-    assert result.stdout == "aws_access_key_id=access\naws_secret_access_key=secret\n"
+    assert (
+        result.stdout
+        == "[default]\naws_access_key_id=access\naws_secret_access_key=secret\n"
+    )
+
+
+def test_create_format_duration_ini(mocked_for_duration):
+    runner = CliRunner(mix_stderr=False)
+    result = runner.invoke(
+        cli,
+        ["create", "test-bucket", "-c", "--duration", "15m", "-f", "ini"],
+        catch_exceptions=False,
+    )
+    assert result.exit_code == 0
+    assert result.stdout == (
+        "[default]\n"
+        "aws_access_key_id=access\n"
+        "aws_secret_access_key=secret\n"
+        "aws_session_token=session\n"
+    )
 
 
 def test_list_user_policies(mocker):

@@ -65,6 +65,7 @@ Created user: s3.read-write.static.niche-museums.com with permissions boundary: 
 Attached policy s3.read-write.static.niche-museums.com to user s3.read-write.static.niche-museums.com
 Created access key for user: s3.read-write.static.niche-museums.com
 % cat ini.txt
+[default]
 aws_access_key_id=AKIAWXFXAIOZKGXI4PVO
 aws_secret_access_key=...
 ```
