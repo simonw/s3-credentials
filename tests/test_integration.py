@@ -3,7 +3,9 @@
 # and clean up after themselves
 from click.testing import CliRunner
 from s3_credentials.cli import bucket_exists, cli
+import botocore
 import boto3
+import datetime
 import json
 import pytest
 import secrets
@@ -46,6 +48,52 @@ def test_create_bucket_with_read_write():
         Bucket=bucket_name, Key="hello.txt"
     )
     assert credentials_response["Body"].read() == b"hello"
+
+
+def test_create_bucket_read_only_duration_15():
+    bucket_name = "s3-credentials-tests.read-only.{}".format(secrets.token_hex(4))
+    s3 = boto3.client("s3")
+    assert not bucket_exists(s3, bucket_name)
+    credentials_decoded = json.loads(
+        get_output("create", bucket_name, "-c", "--duration", "15m", "--read-only")
+    )
+    assert set(credentials_decoded.keys()) == {
+        "AccessKeyId",
+        "SecretAccessKey",
+        "SessionToken",
+        "Expiration",
+    }
+    # Expiration should be ~15 minutes in the future
+    delta = (
+        datetime.datetime.fromisoformat(credentials_decoded["Expiration"])
+        - datetime.datetime.now(datetime.timezone.utc)
+    ).total_seconds()
+    # Should be around about 900 seconds
+    assert 800 < delta < 1000
+    # Wait for everything to exist
+    time.sleep(10)
+    # Create client with these credentials
+    credentials_s3 = boto3.session.Session(
+        aws_access_key_id=credentials_decoded["AccessKeyId"],
+        aws_secret_access_key=credentials_decoded["SecretAccessKey"],
+        aws_session_token=credentials_decoded["SessionToken"],
+    ).client("s3")
+    # Client should NOT be allowed to write objects
+    with pytest.raises(botocore.exceptions.ClientError):
+        credentials_s3.put_object(
+            Body="hello".encode("utf-8"), Bucket=bucket_name, Key="hello.txt"
+        )
+    # Write an object using root credentials
+    s3.put_object(
+        Body="hello read-only".encode("utf-8"),
+        Bucket=bucket_name,
+        Key="hello-read-only.txt",
+    )
+    # Client should be able to read this
+    credentials_response = credentials_s3.get_object(
+        Bucket=bucket_name, Key="hello-read-only.txt"
+    )
+    assert credentials_response["Body"].read() == b"hello read-only"
 
 
 def get_output(*args, input=None):

@@ -4,6 +4,7 @@ import botocore
 import click
 import configparser
 import json
+import re
 from . import policies
 
 
@@ -90,6 +91,26 @@ class PolicyParam(click.ParamType):
                 self.fail("File not found")
 
 
+class DurationParam(click.ParamType):
+    name = "duration"
+    pattern = re.compile(r"^(\d+)(m|h|s)?$")
+
+    def convert(self, value, param, ctx):
+        match = self.pattern.match(value)
+        if match is None:
+            self.fail("Duration must be of form 3600s or 15m or 2h")
+        integer_string, suffix = match.groups()
+        integer = int(integer_string)
+        if suffix == "m":
+            integer *= 60
+        elif suffix == "h":
+            integer *= 3600
+        # Must be between 15 minutes and 12 hours
+        if not (15 * 60 <= integer <= 12 * 60 * 60):
+            self.fail("Duration must be between 15 minutes and 12 hours")
+        return integer
+
+
 @cli.command()
 @click.argument(
     "buckets",
@@ -103,6 +124,12 @@ class PolicyParam(click.ParamType):
     type=click.Choice(["ini", "json"]),
     default="json",
     help="Output format for credentials",
+)
+@click.option(
+    "-d",
+    "--duration",
+    type=DurationParam(),
+    help="How long should these credentials work for? Default is forever, use 3600 for 3600 seconds, 15m for 15 minutes, 1h for 1 hour",
 )
 @click.option("--username", help="Username to create or existing user to use")
 @click.option(
@@ -132,6 +159,7 @@ class PolicyParam(click.ParamType):
 def create(
     buckets,
     format_,
+    duration,
     username,
     create_bucket,
     read_only,
@@ -159,6 +187,7 @@ def create(
         permission = "write-only"
     s3 = make_client("s3", **boto_options)
     iam = make_client("iam", **boto_options)
+    sts = boto3.client("sts")
     # Verify buckets
     for bucket in buckets:
         # Create bucket if it doesn't exist
@@ -182,7 +211,42 @@ def create(
                 if bucket_region:
                     info += "in region: {}".format(bucket_region)
                 log(info)
-    # Buckets created - now create the user, if needed
+    # At this point the buckets definitely exist - create the inline policy
+    bucket_access_policy = {}
+    if policy:
+        bucket_access_policy = json.loads(policy.replace("$!BUCKET_NAME!$", bucket))
+    else:
+        statements = []
+        if permission == "read-write":
+            for bucket in buckets:
+                statements.extend(policies.read_write_statements(bucket))
+        elif permission == "read-only":
+            for bucket in buckets:
+                statements.extend(policies.read_only_statements(bucket))
+        elif permission == "write-only":
+            for bucket in buckets:
+                statements.extend(policies.write_only_statements(bucket))
+        else:
+            assert False, "Unknown permission: {}".format(permission)
+        bucket_access_policy = policies.wrap_policy(statements)
+
+    if duration:
+        # We're going to use sts.assume_role() rather than creating a user
+        s3_role_arn = ensure_s3_role_exists(iam, sts)
+        log("Assume role against {} for {}s".format(s3_role_arn, duration))
+        credentials_response = sts.assume_role(
+            RoleArn=s3_role_arn,
+            RoleSessionName="s3.{permission}.{buckets}".format(
+                permission="custom" if policy else permission, buckets=",".join(buckets)
+            ),
+            Policy=json.dumps(bucket_access_policy),
+            DurationSeconds=duration,
+        )
+        click.echo(
+            json.dumps(credentials_response["Credentials"], indent=4, default=str)
+        )
+        return
+    # No duration, so wo create a new user so we can issue non-expiring credentials
     if not username:
         # Default username is "s3.read-write.bucket1,bucket2"
         username = "s3.{permission}.{buckets}".format(
@@ -430,3 +494,55 @@ def make_client(service, access_key, secret_key, session_token, endpoint_url, au
     if endpoint_url:
         kwargs["endpoint_url"] = endpoint_url
     return boto3.client(service, **kwargs)
+
+
+def ensure_s3_role_exists(iam, sts):
+    "Create s3-credentials.AmazonS3FullAccess role if not exists, return ARN"
+    role_name = "s3-credentials.AmazonS3FullAccess"
+    account_id = sts.get_caller_identity()["Account"]
+    try:
+        role = iam.get_role(RoleName=role_name)
+        return role["Role"]["Arn"]
+    except iam.exceptions.NoSuchEntityException:
+        create_role_response = iam.create_role(
+            Description=(
+                "Role used by the s3-credentials tool to create time-limited "
+                "credentials that are restricted to specific buckets"
+            ),
+            RoleName=role_name,
+            AssumeRolePolicyDocument=json.dumps(
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "AWS": "arn:aws:iam::{}:root".format(account_id)
+                            },
+                            "Action": "sts:AssumeRole",
+                            "Condition": {},
+                        }
+                    ],
+                }
+            ),
+        )
+        # Attach AmazonS3FullAccess to it - note that even though we use full access
+        # on the role itself any time we call sts.assume_role() we attach an additional
+        # policy to ensure reduced access for the temporary credentials
+        iam.attach_role_policy(
+            RoleName="s3-credentials.AmazonS3FullAccess",
+            PolicyArn="arn:aws:iam::aws:policy/AmazonS3FullAccess",
+        )
+        return create_role_response["Role"]["Arn"]
+
+
+@cli.command()
+@click.argument("bucket")
+@common_boto3_options
+def list_bucket(bucket, **boto_options):
+    "List content of bucket"
+    s3 = make_client("s3", **boto_options)
+    paginator = s3.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=bucket):
+        for row in page["Contents"]:
+            click.echo(json.dumps(row, indent=4, default=str))

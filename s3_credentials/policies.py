@@ -1,5 +1,5 @@
 def read_write(bucket):
-    return _policy(read_write_statements(bucket))
+    return wrap_policy(read_write_statements(bucket))
 
 
 def read_write_statements(bucket):
@@ -14,7 +14,7 @@ def read_write_statements(bucket):
 
 
 def read_only(bucket):
-    return _policy(read_only_statements(bucket))
+    return wrap_policy(read_only_statements(bucket))
 
 
 def read_only_statements(bucket):
@@ -40,7 +40,7 @@ def read_only_statements(bucket):
 
 
 def write_only(bucket):
-    return _policy(write_only_statements(bucket))
+    return wrap_policy(write_only_statements(bucket))
 
 
 def write_only_statements(bucket):
@@ -54,5 +54,5 @@ def write_only_statements(bucket):
     ]
 
 
-def _policy(statements):
+def wrap_policy(statements):
     return {"Version": "2012-10-17", "Statement": statements}

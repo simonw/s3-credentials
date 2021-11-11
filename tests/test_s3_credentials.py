@@ -288,16 +288,20 @@ READ_ONLY_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", 
 WRITE_ONLY_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:PutObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}'
 
 
+# Used by both test_create and test_create_duration
+CREATE_TESTS = (
+    ([], False, READ_WRITE_POLICY, "read-write"),
+    (["--read-only"], False, READ_ONLY_POLICY, "read-only"),
+    (["--write-only"], False, WRITE_ONLY_POLICY, "write-only"),
+    (["--policy", "POLICYFILEPATH"], False, CUSTOM_POLICY, "custom"),
+    (["--policy", "-"], True, CUSTOM_POLICY, "custom"),
+    (["--policy", CUSTOM_POLICY], False, CUSTOM_POLICY, "custom"),
+)
+
+
 @pytest.mark.parametrize(
     "options,use_policy_stdin,expected_policy,expected_name_fragment",
-    (
-        ([], False, READ_WRITE_POLICY, "read-write"),
-        (["--read-only"], False, READ_ONLY_POLICY, "read-only"),
-        (["--write-only"], False, WRITE_ONLY_POLICY, "write-only"),
-        (["--policy", "POLICYFILEPATH"], False, CUSTOM_POLICY, "custom"),
-        (["--policy", "-"], True, CUSTOM_POLICY, "custom"),
-        (["--policy", CUSTOM_POLICY], False, CUSTOM_POLICY, "custom"),
-    ),
+    CREATE_TESTS,
 )
 def test_create(
     mocker, tmpdir, options, use_policy_stdin, expected_policy, expected_name_fragment
@@ -318,7 +322,7 @@ def test_create(
         kwargs = {}
         if use_policy_stdin:
             kwargs["input"] = CUSTOM_POLICY
-        result = runner.invoke(cli, args, **kwargs)
+        result = runner.invoke(cli, args, **kwargs, catch_exceptions=False)
         assert result.exit_code == 0
         assert result.output == (
             "Attached policy s3.NAME_FRAGMENT.pytest-bucket-simonw-1 to user s3.NAME_FRAGMENT.pytest-bucket-simonw-1\n"
@@ -328,6 +332,7 @@ def test_create(
         assert [str(c) for c in boto3.mock_calls] == [
             "call('s3')",
             "call('iam')",
+            "call('sts')",
             "call().head_bucket(Bucket='pytest-bucket-simonw-1')",
             "call().get_user(UserName='s3.{}.pytest-bucket-simonw-1')".format(
                 expected_name_fragment
@@ -339,6 +344,62 @@ def test_create(
             ),
             "call().create_access_key(UserName='s3.{}.pytest-bucket-simonw-1')".format(
                 expected_name_fragment
+            ),
+        ]
+
+
+@pytest.mark.parametrize(
+    "options,use_policy_stdin,expected_policy,expected_name_fragment",
+    CREATE_TESTS,
+)
+def test_create_duration(
+    mocker, tmpdir, options, use_policy_stdin, expected_policy, expected_name_fragment
+):
+    boto3 = mocker.patch("boto3.client")
+    boto3.return_value = Mock()
+    boto3.return_value.create_access_key.return_value = {
+        "AccessKey": {"AccessKeyId": "access", "SecretAccessKey": "secret"}
+    }
+    boto3.return_value.get_caller_identity.return_value = {"Account": "1234"}
+    boto3.return_value.get_role.return_value = {"Role": {"Arn": "arn:::role"}}
+    boto3.return_value.assume_role.return_value = {
+        "Credentials": {"AccessKeyId": "access", "SecretAccessKey": "secret"}
+    }
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        filepath = str(tmpdir / "policy.json")
+        open(filepath, "w").write(CUSTOM_POLICY)
+        fixed_options = [
+            filepath if option == "POLICYFILEPATH" else option for option in options
+        ]
+        args = [
+            "create",
+            "pytest-bucket-simonw-1",
+            "-c",
+            "--duration",
+            "15m",
+        ] + fixed_options
+        kwargs = {}
+        if use_policy_stdin:
+            kwargs["input"] = CUSTOM_POLICY
+        result = runner.invoke(cli, args, **kwargs, catch_exceptions=False)
+        assert result.exit_code == 0
+        assert result.output == (
+            "Assume role against arn:::role for 900s\n"
+            '{\n    "AccessKeyId": "access",\n    "SecretAccessKey": "secret"\n}\n'
+        )
+        assert [str(c) for c in boto3.mock_calls] == [
+            "call('s3')",
+            "call('iam')",
+            "call('sts')",
+            "call().head_bucket(Bucket='pytest-bucket-simonw-1')",
+            "call().get_caller_identity()",
+            "call().get_role(RoleName='s3-credentials.AmazonS3FullAccess')",
+            "call().assume_role(RoleArn='arn:::role', RoleSessionName='s3.{fragment}.pytest-bucket-simonw-1', Policy='{policy}', DurationSeconds=900)".format(
+                fragment=expected_name_fragment,
+                policy=expected_policy.replace(
+                    "$!BUCKET_NAME!$", "pytest-bucket-simonw-1"
+                ),
             ),
         ]
 
