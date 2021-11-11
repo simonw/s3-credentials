@@ -33,11 +33,16 @@ You can also use the `--access-key=`, `--secret-key=`, `--session-token` and `--
 
 ## Usage
 
-The `s3-credentials create` command is the core feature of this tool. Pass it one or more S3 bucket names and it will create a new user with permission to access just those specific buckets, then create access credentials for that user and output them to your console.
+The `s3-credentials create` command is the core feature of this tool. Pass it one or more S3 bucket names, specify a policy (read-write, read-only or write-only) and it will return AWS credentials that can be used to access those buckets.
+
+These credentials can be **temporary** or **permanent**.
+
+- Temporary credentials can last for between 15 minutes and 12 hours. They are created using [STS.AssumeRole()](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).
+- Permanent credentials never expire. They are created by first creating a dedicated AWS user, then assgning a policy to that user and creating and returning an access key for it.
 
 Make sure to record the `SecretAccessKey` because it will only be displayed once and cannot be recreated later on.
 
-In this example I create credentials for reading and writing files in my `static.niche-museums.com` S3 bucket:
+In this example I create permanent credentials for reading and writing files in my `static.niche-museums.com` S3 bucket:
 
 ```
 % s3-credentials create static.niche-museums.com
@@ -53,7 +58,7 @@ Created access key for user: s3.read-write.static.niche-museums.com
     "CreateDate": "2021-11-03 01:38:24+00:00"
 }
 ```
-Use `--format ini` to output the credentials in INI format, suitable for pasting into a `~/.aws/credentials` file:
+If you add `--format ini` the credentials will be output in INI format, suitable for pasting into a `~/.aws/credentials` file:
 ```
 % s3-credentials create static.niche-museums.com --format ini > ini.txt
 Created user: s3.read-write.static.niche-museums.com with permissions boundary: arn:aws:iam::aws:policy/AmazonS3FullAccess
@@ -62,10 +67,26 @@ Created access key for user: s3.read-write.static.niche-museums.com
 % cat ini.txt
 aws_access_key_id=AKIAWXFXAIOZKGXI4PVO
 aws_secret_access_key=...
-````
-The `create` command has several additional options:
+```
+
+To create temporary credentials, add `--duration 15m` (or `1h` or `1200s`). The specified duration must be between 15 minutes and 12 hours.
+
+```
+% s3-credentials create static.niche-museums.com --duration 15m
+Assume role against arn:aws:iam::462092780466:role/s3-credentials.AmazonS3FullAccess for 900s
+{
+    "AccessKeyId": "ASIAWXFXAIOZPAHAYHUG",
+    "SecretAccessKey": "Nrnoc...",
+    "SessionToken": "FwoGZXIvYXd...mr9Fjs=",
+    "Expiration": "2021-11-11 03:24:07+00:00"
+}
+```
+When using temporary credentials the session token must be passed in addition to the access key and secret key.
+
+The `create` command has a number of options:
 
 - `--format TEXT`: The output format to use. Defaults to `json`, but can also be `ini`.
+- `--duration 15m`: For temporary credentials, how long should they last? This can be specified in seconds, minutes or hours using a suffix of `s`, `m` or `h` - but must be between 15 minutes and 12 hours.
 - `--username TEXT`: The username to use for the user that is created by the command (or the username of an existing user if you do not want to create a new one). If ommitted a default such as `s3.read-write.static.niche-museums.com` will be used.
 - `-c, --create-bucket`: Create the buckts if they do not exist. Without this any missing buckets will be treated as an error.
 - `--read-only`: The user should only be allowed to read files from the bucket.-
@@ -75,13 +96,23 @@ The `create` command has several additional options:
 - `--silent`: Don't output details of what is happening, just output the JSON for the created access credentials at the end.
 - `--user-permissions-boundary`: Custom [permissions boundary](https://docs.aws.amazon.com`/IAM/latest/UserGuide/access_policies_boundaries.html) to use for users created by this tool. This will default to restricting those users to only interacting with S3, taking the `--read-only` option into account. Use `none` to create users without any permissions boundary at all.
 
-Here's the full sequence of events that take place when you run this command:
+### Changes that will be made to your AWS account
+
+How the tool works varies depending on if you are creating temporary or permanent credentials.
+
+For permanent credentials, the steps are as follows:
 
 1. Confirm that each of the specified buckets exists. If they do not and `--create-bucket` was passed create them - otherwise exit with an error.
-2. If a username was not specified, determine a username using the `s3.$permission.$buckets` format.
+2. If a username was not specified, derive a username using the `s3.$permission.$buckets` format.
 3. If a user with that username does not exist, create one with an S3 permissions boundary that respects the `--read-only` option - unless `--user-permissions-boundary=none` was passed (or a custom permissions boundary string).
 4. For each specified bucket, add an inline IAM policy to the user that gives them permission to either read-only, write-only or read-write against that bucket.
 5. Create a new access key for that user and output the key and its secret to the console.
+
+For temporary credentials:
+
+1. Confirm or create buckets, in the same way as for permanent credentials.
+2. Check if an AWS role called `s3-credentials.AmazonS3FullAccess` exists. If it does not exist create it, configured to allow the user's AWS account to assume it and with the `arn:aws:iam::aws:policy/AmazonS3FullAccess` policy attached.
+3. Use `STS.AssumeRole()` to return temporary credentials that are restricted to just the specified buckets and specified read-only/read-write/write-only policy.
 
 ### Using a custom policy
 
