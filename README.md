@@ -340,7 +340,7 @@ The managiment interface for an individual bucket is at `https://console.aws.ama
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
 
     cd s3-credentials
-    python -mvenv venv
+    python -m venv venv
     source venv/bin/activate
 
 Or if you are using `pipenv`:
@@ -354,3 +354,15 @@ Now install the dependencies and test dependencies:
 To run the tests:
 
     pytest
+
+### Integration tests
+
+The main tests all use stubbed interfaces to AWS, so will not make any outbound API calls.
+
+There is also a suite of integration tests in `tests/test_integration.py` which DO make API calls to AWS, using credentials from your environment variables or `~/.aws/credentials` file.
+
+These tests are skipped by default. If you have AWS configured with an account that has permission to run `s3-credentials` (create users, roles, buckets etc) you can run these tests using:
+
+    pytest --integration
+
+The tests will create a number of different users and buckets and should then delete them once they finish running.
