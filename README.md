@@ -365,7 +365,7 @@ You can view a list of your S3 buckets and confirm that they have the desired pe
 
 https://console.aws.amazon.com/s3/home
 
-The managiment interface for an individual bucket is at `https://console.aws.amazon.com/s3/buckets/NAME-OF-BUCKET`
+The management interface for an individual bucket is at `https://console.aws.amazon.com/s3/buckets/NAME-OF-BUCKET`
 
 ## Development
 
