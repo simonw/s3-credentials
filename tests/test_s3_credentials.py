@@ -25,17 +25,23 @@ def stub_s3(mocker):
     return stubber
 
 
-def test_whoami(mocker, stub_iam):
-    stub_iam.add_response(
-        "get_user",
+@pytest.fixture
+def stub_sts(mocker):
+    client = botocore.session.get_session().create_client("sts")
+    stubber = Stubber(client)
+    stubber.activate()
+    mocker.patch("s3_credentials.cli.make_client", return_value=client)
+    return stubber
+
+
+def test_whoami(mocker, stub_sts):
+    stub_sts.add_response(
+        "get_caller_identity",
         {
-            "User": {
-                "Path": "/",
-                "UserName": "Name",
-                "UserId": "AID000000000000000000",
-                "Arn": "arn:aws:iam::000000000000:user/Name",
-                "CreateDate": "2020-01-01 00:00:00+00:00",
-            }
+            "UserId": "AEONAUTHOUNTOHU",
+            "Account": "123456",
+            "Arn": "arn:aws:iam::123456:user/user-name",
+            "ResponseMetadata": {},
         },
     )
 
@@ -44,11 +50,9 @@ def test_whoami(mocker, stub_iam):
         result = runner.invoke(cli, ["whoami"])
         assert result.exit_code == 0
         assert json.loads(result.output) == {
-            "Path": "/",
-            "UserName": "Name",
-            "UserId": "AID000000000000000000",
-            "Arn": "arn:aws:iam::000000000000:user/Name",
-            "CreateDate": "2020-01-01 00:00:00+00:00",
+            "UserId": "AEONAUTHOUNTOHU",
+            "Account": "123456",
+            "Arn": "arn:aws:iam::123456:user/user-name",
         }
 
 

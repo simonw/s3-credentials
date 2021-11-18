@@ -332,8 +332,10 @@ def create(
 @common_boto3_options
 def whoami(**boto_options):
     "Identify currently authenticated user"
-    iam = make_client("iam", **boto_options)
-    click.echo(json.dumps(iam.get_user()["User"], indent=4, default=str))
+    sts = make_client("sts", **boto_options)
+    identity = sts.get_caller_identity()
+    identity.pop("ResponseMetadata")
+    click.echo(json.dumps(identity, indent=4, default=str))
 
 
 @cli.command()
