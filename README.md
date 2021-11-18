@@ -170,6 +170,16 @@ To see which user you are authenticated as:
 
 This will output JSON representing the currently authenticated user.
 
+Using this with the `--auth` option is useful for verifying created credentials:
+```
+s3-credentials create static.niche-museums.com --read-only > auth.json
+s3-credentials whoami --auth auth.json    
+{
+    "UserId": "AIDAWXFXAIOZPIZC6MHAG",
+    "Account": "462092780466",
+    "Arn": "arn:aws:iam::462092780466:user/s3.read-only.static.niche-museums.com"
+}
+```
 ### list-users
 
 To see a list of all users that exist for your AWS account:
