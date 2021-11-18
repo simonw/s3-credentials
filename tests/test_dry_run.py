@@ -48,7 +48,7 @@ Would call create access key for user 'frank'"""
             (
                 """Would create bucket: 'my-bucket'
 Would ensure role: 's3-credentials.AmazonS3FullAccess'
-Would assume role using following policy:*"""
+Would assume role using following policy for 1200 seconds:*"""
             ),
         ),
     ),
