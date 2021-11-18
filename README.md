@@ -89,14 +89,14 @@ The `create` command has a number of options:
 - `--format TEXT`: The output format to use. Defaults to `json`, but can also be `ini`.
 - `--duration 15m`: For temporary credentials, how long should they last? This can be specified in seconds, minutes or hours using a suffix of `s`, `m` or `h` - but must be between 15 minutes and 12 hours.
 - `--username TEXT`: The username to use for the user that is created by the command (or the username of an existing user if you do not want to create a new one). If ommitted a default such as `s3.read-write.static.niche-museums.com` will be used.
-- `-c, --create-bucket`: Create the buckts if they do not exist. Without this any missing buckets will be treated as an error.
-- `--read-only`: The user should only be allowed to read files from the bucket.-
-- `--write-only`: The user should only be allowed to write files to the bucket, but not read them. This is useful for logging use-cases.
-- `--policy filepath-or-string`: A custom policy document (as a file path, literal JSON string or `-` for standard input) - see below
+- `-c, --create-bucket`: Create the buckets if they do not exist. Without this any missing buckets will be treated as an error.
+- `--read-only`: The user should only be allowed to read files from the bucket.
+- `--write-only`: The user should only be allowed to write files to the bucket, but not read them. This can be useful for logging and backups.
+- `--policy filepath-or-string`: A custom policy document (as a file path, literal JSON string or `-` for standard input) - see below.
 - `--bucket-region`: If creating buckets, the region in which they should be created.
 - `--silent`: Don't output details of what is happening, just output the JSON for the created access credentials at the end.
 - `--dry-run`: Output details of AWS changes that would have been made without applying them.
-- `--user-permissions-boundary`: Custom [permissions boundary](https://docs.aws.amazon.com`/IAM/latest/UserGuide/access_policies_boundaries.html) to use for users created by this tool. This will default to restricting those users to only interacting with S3, taking the `--read-only` option into account. Use `none` to create users without any permissions boundary at all.
+- `--user-permissions-boundary`: Custom [permissions boundary](https://docs.aws.amazon.com`/IAM/latest/UserGuide/access_policies_boundaries.html) to use for users created by this tool. The default is to restrict those users to only interacting with S3, taking the `--read-only` option into account. Use `none` to create users without any permissions boundary at all.
 
 ### Changes that will be made to your AWS account
 
