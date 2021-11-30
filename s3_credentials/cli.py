@@ -168,6 +168,9 @@ def policy(buckets, read_only, write_only):
     help="Create buckets if they do not already exist",
     is_flag=True,
 )
+@click.option(
+    "--prefix", help="Restrict to keys starting with this prefix", default="*"
+)
 @click.option("--read-only", help="Only allow reading from the bucket", is_flag=True)
 @click.option("--write-only", help="Only allow writing to the bucket", is_flag=True)
 @click.option(
@@ -193,6 +196,7 @@ def create(
     duration,
     username,
     create_bucket,
+    prefix,
     read_only,
     write_only,
     policy,
@@ -270,13 +274,13 @@ def create(
         statements = []
         if permission == "read-write":
             for bucket in buckets:
-                statements.extend(policies.read_write_statements(bucket))
+                statements.extend(policies.read_write_statements(bucket, prefix))
         elif permission == "read-only":
             for bucket in buckets:
-                statements.extend(policies.read_only_statements(bucket))
+                statements.extend(policies.read_only_statements(bucket, prefix))
         elif permission == "write-only":
             for bucket in buckets:
-                statements.extend(policies.write_only_statements(bucket))
+                statements.extend(policies.write_only_statements(bucket, prefix))
         else:
             assert False, "Unknown permission: {}".format(permission)
         bucket_access_policy = policies.wrap_policy(statements)
@@ -285,7 +289,11 @@ def create(
         # We're going to use sts.assume_role() rather than creating a user
         if dry_run:
             click.echo("Would ensure role: 's3-credentials.AmazonS3FullAccess'")
-            click.echo("Would assume role using following policy for {} seconds:".format(duration))
+            click.echo(
+                "Would assume role using following policy for {} seconds:".format(
+                    duration
+                )
+            )
             click.echo(json.dumps(bucket_access_policy, indent=4))
         else:
             s3_role_arn = ensure_s3_role_exists(iam, sts)
