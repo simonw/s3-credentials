@@ -3,8 +3,11 @@ import boto3
 import botocore
 import click
 import configparser
+import io
 import json
+import os
 import re
+import sys
 from . import policies
 
 
@@ -639,3 +642,56 @@ def list_bucket(bucket, **boto_options):
     for page in paginator.paginate(Bucket=bucket):
         for row in page["Contents"]:
             click.echo(json.dumps(row, indent=4, default=str))
+
+
+@cli.command()
+@click.argument("bucket")
+@click.argument("key")
+@click.argument(
+    "content",
+    type=click.Path(
+        exists=True, file_okay=True, dir_okay=False, readable=True, allow_dash=True
+    ),
+)
+@click.option("silent", "-s", "--silent", is_flag=True, help="Don't show progress bar")
+@common_boto3_options
+def put_object(bucket, key, content, silent, **boto_options):
+    "Upload an object to an S3 bucket"
+    s3 = make_client("s3", **boto_options)
+    size = None
+    if content == "-":
+        # boto needs to be able to seek
+        fp = io.BytesIO(sys.stdin.buffer.read())
+        if not silent:
+            size = fp.getbuffer().nbytes
+    else:
+        fp = click.open_file(content, "rb")
+        if not silent:
+            size = os.path.getsize(content)
+    if not silent:
+        # Show progress bar
+        with click.progressbar(length=size, label="Uploading") as bar:
+            s3.upload_fileobj(fp, bucket, key, Callback=bar.update)
+    else:
+        s3.upload_fileobj(fp, bucket, key)
+
+
+@cli.command()
+@click.argument("bucket")
+@click.argument("key")
+@click.option(
+    "output",
+    "-o",
+    "--output",
+    type=click.Path(file_okay=True, dir_okay=False, writable=True, allow_dash=False),
+    help="Write to this file instead of stdout",
+)
+@common_boto3_options
+def get_object(bucket, key, output, **boto_options):
+    "Download an object from an S3 bucket"
+    s3 = make_client("s3", **boto_options)
+    if not output:
+        fp = sys.stdout.buffer
+    else:
+        fp = click.open_file(output, "wb")
+    s3.download_fileobj(bucket, key, fp)

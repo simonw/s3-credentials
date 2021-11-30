@@ -352,6 +352,28 @@ User: s3.read-write.simonw-test-bucket-10
 ```
 You can pass it multiple usernames to delete multiple users at a time.
 
+### put-object
+
+You can upload a file to a key in an S3 bucket using `s3-credentials put-object`:
+
+    s3-credentials put-object my-bucket my-key.txt /path/to/file.txt
+
+Use `-` as the file name to upload from standard input:
+
+    echo "Hello" | s3-credentials put-object my-bucket hello.txt -
+
+This command shows a progress bar by default. Use `-s` or `--silent` to hide the progress bar.
+
+### get-object
+
+To download a file from a bucket use `s3-credentials get-object`:
+
+    s3-credentials get-object my-bucket hello.txt
+
+This defaults to outputting the downloaded file to the terminal. You can instead direct it to save to a file on disk using the `-o` or `--output` option:
+
+    s3-credentials get-object my-bucket hello.txt -o /path/to/hello.txt
+
 ## Common options
 
 All of the `s3-credentials` commands also accept the following options for authenticating against AWS:
