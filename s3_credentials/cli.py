@@ -285,7 +285,11 @@ def create(
         # We're going to use sts.assume_role() rather than creating a user
         if dry_run:
             click.echo("Would ensure role: 's3-credentials.AmazonS3FullAccess'")
-            click.echo("Would assume role using following policy for {} seconds:".format(duration))
+            click.echo(
+                "Would assume role using following policy for {} seconds:".format(
+                    duration
+                )
+            )
             click.echo(json.dumps(bucket_access_policy, indent=4))
         else:
             s3_role_arn = ensure_s3_role_exists(iam, sts)
