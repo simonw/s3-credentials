@@ -32,6 +32,6 @@ setup(
         s3-credentials=s3_credentials.cli:cli
     """,
     install_requires=["click", "boto3"],
-    extras_require={"test": ["pytest", "pytest-mock"]},
+    extras_require={"test": ["pytest", "pytest-mock", "cogapp"]},
     python_requires=">=3.6",
 )
