@@ -117,6 +117,36 @@ class DurationParam(click.ParamType):
     nargs=-1,
     required=True,
 )
+@click.option("--read-only", help="Only allow reading from the bucket", is_flag=True)
+@click.option("--write-only", help="Only allow writing to the bucket", is_flag=True)
+def policy(buckets, read_only, write_only):
+    permission = "read-write"
+    if read_only:
+        permission = "read-only"
+    if write_only:
+        permission = "write-only"
+    statements = []
+    if permission == "read-write":
+        for bucket in buckets:
+            statements.extend(policies.read_write_statements(bucket))
+    elif permission == "read-only":
+        for bucket in buckets:
+            statements.extend(policies.read_only_statements(bucket))
+    elif permission == "write-only":
+        for bucket in buckets:
+            statements.extend(policies.write_only_statements(bucket))
+    else:
+        assert False, "Unknown permission: {}".format(permission)
+    bucket_access_policy = policies.wrap_policy(statements)
+    click.echo(json.dumps(bucket_access_policy, indent=4))
+
+
+@cli.command()
+@click.argument(
+    "buckets",
+    nargs=-1,
+    required=True,
+)
 @click.option(
     "format_",
     "-f",

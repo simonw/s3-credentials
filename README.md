@@ -165,6 +165,21 @@ You can also pass `-` to read from standard input, or you can pass the literal J
 
 ## Other commands
 
+### policy
+
+You can use the `s3-credentials policy` command to generate the JSON policy document that would be used without applying it. The command takes one or more required bucket names and a subset of the options available on the `create` command:
+
+- `--read-only` - generate a read-only policy
+- `--write-only` - generate a write-only policy
+
+With none of these options it defaults to a read-write policy.
+```
+% s3-credentials policy my-bucket --read-only
+{
+    "Version": "2012-10-17",
+...
+```
+
 ### whoami
 
 To see which user you are authenticated as:

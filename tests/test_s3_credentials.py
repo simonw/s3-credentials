@@ -671,3 +671,21 @@ def test_auth_option_errors(extra_option):
         result.output
         == "Error: --auth cannot be used with --access-key, --secret-key or --session-token\n"
     )
+
+
+@pytest.mark.parametrize(
+    "options,expected",
+    (
+        ([], READ_WRITE_POLICY),
+        (["--read-only"], READ_ONLY_POLICY),
+        (["--write-only"], WRITE_ONLY_POLICY),
+    ),
+)
+def test_policy(options, expected):
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["policy", "pytest-bucket-simonw-1"] + options,
+        catch_exceptions=False,
+    )
+    assert json.loads(result.output) == json.loads(expected)
