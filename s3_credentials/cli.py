@@ -5,6 +5,7 @@ import click
 import configparser
 import io
 import json
+import mimetypes
 import os
 import re
 import sys
@@ -653,27 +654,38 @@ def list_bucket(bucket, **boto_options):
         exists=True, file_okay=True, dir_okay=False, readable=True, allow_dash=True
     ),
 )
+@click.option(
+    "--content-type",
+    help="Content-Type to use (default is auto-detected based on file extension)",
+)
 @click.option("silent", "-s", "--silent", is_flag=True, help="Don't show progress bar")
 @common_boto3_options
-def put_object(bucket, key, content, silent, **boto_options):
+def put_object(bucket, key, content, content_type, silent, **boto_options):
     "Upload an object to an S3 bucket"
     s3 = make_client("s3", **boto_options)
     size = None
+    extra_args = {}
     if content == "-":
         # boto needs to be able to seek
         fp = io.BytesIO(sys.stdin.buffer.read())
         if not silent:
             size = fp.getbuffer().nbytes
     else:
+        if not content_type:
+            content_type = mimetypes.guess_type(content)[0]
         fp = click.open_file(content, "rb")
         if not silent:
             size = os.path.getsize(content)
+    if content_type is not None:
+        extra_args["ContentType"] = content_type
     if not silent:
         # Show progress bar
         with click.progressbar(length=size, label="Uploading") as bar:
-            s3.upload_fileobj(fp, bucket, key, Callback=bar.update)
+            s3.upload_fileobj(
+                fp, bucket, key, Callback=bar.update, ExtraArgs=extra_args
+            )
     else:
-        s3.upload_fileobj(fp, bucket, key)
+        s3.upload_fileobj(fp, bucket, key, ExtraArgs=extra_args)
 
 
 @cli.command()
