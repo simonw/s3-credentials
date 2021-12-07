@@ -56,3 +56,18 @@ def write_only_statements(bucket):
 
 def wrap_policy(statements):
     return {"Version": "2012-10-17", "Statement": statements}
+
+
+def bucket_policy_allow_all_get(bucket):
+    return {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Sid": "AllowAllGetObject",
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": ["s3:GetObject"],
+                "Resource": ["arn:aws:s3:::{}/*".format(bucket)],
+            }
+        ],
+    }

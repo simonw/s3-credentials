@@ -171,6 +171,7 @@ You can use the `s3-credentials policy` command to generate the JSON policy docu
 
 - `--read-only` - generate a read-only policy
 - `--write-only` - generate a write-only policy
+- `--public-bucket` - generate a bucket policy for a public bucket
 
 With none of these options it defaults to a read-write policy.
 ```
@@ -536,6 +537,36 @@ cog.out(
       "Effect": "Allow",
       "Action": [
         "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket/*"
+      ]
+    }
+  ]
+}
+```
+<!-- [[[end]]] -->
+
+### public bucket policy
+
+Buckets created using the `--public` option will have the following bucket policy attached to them:
+
+<!-- [[[cog
+result = runner.invoke(cli.cli, ["policy", "my-s3-bucket", "--public-bucket"])
+cog.out(
+    "```\n{}\n```".format(json.dumps(json.loads(result.output), indent=2))
+)
+]]] -->
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowAllGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": [
+        "s3:GetObject"
       ],
       "Resource": [
         "arn:aws:s3:::my-s3-bucket/*"

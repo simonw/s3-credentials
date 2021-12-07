@@ -123,7 +123,21 @@ class DurationParam(click.ParamType):
 )
 @click.option("--read-only", help="Only allow reading from the bucket", is_flag=True)
 @click.option("--write-only", help="Only allow writing to the bucket", is_flag=True)
-def policy(buckets, read_only, write_only):
+@click.option(
+    "--public-bucket",
+    help="Bucket policy for allowing public access",
+    is_flag=True,
+)
+def policy(buckets, read_only, write_only, public_bucket):
+    if public_bucket:
+        if len(buckets) != 1:
+            raise click.ClickException(
+                "--public-bucket-policy can only be generated for a single bucket"
+            )
+        click.echo(
+            json.dumps(policies.bucket_policy_allow_all_get(buckets[0]), indent=4)
+        )
+        return
     permission = "read-write"
     if read_only:
         permission = "read-only"
