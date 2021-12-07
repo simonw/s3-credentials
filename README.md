@@ -90,6 +90,7 @@ The `create` command has a number of options:
 - `--duration 15m`: For temporary credentials, how long should they last? This can be specified in seconds, minutes or hours using a suffix of `s`, `m` or `h` - but must be between 15 minutes and 12 hours.
 - `--username TEXT`: The username to use for the user that is created by the command (or the username of an existing user if you do not want to create a new one). If ommitted a default such as `s3.read-write.static.niche-museums.com` will be used.
 - `-c, --create-bucket`: Create the buckets if they do not exist. Without this any missing buckets will be treated as an error.
+- `--public`: When creating a bucket, set it so that any file uploaded to that bucket can be downloaded by anyone who knows its filename. This attaches the [public bucket policy](#public-bucket-policy) shown below.
 - `--read-only`: The user should only be allowed to read files from the bucket.
 - `--write-only`: The user should only be allowed to write files to the bucket, but not read them. This can be useful for logging and backups.
 - `--policy filepath-or-string`: A custom policy document (as a file path, literal JSON string or `-` for standard input) - see below.

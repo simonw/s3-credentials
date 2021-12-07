@@ -432,6 +432,50 @@ def test_create_duration(
         ]
 
 
+def test_create_public(mocker):
+    boto3 = mocker.patch("boto3.client")
+    boto3.return_value = Mock()
+    boto3.return_value.create_access_key.return_value = {
+        "AccessKey": {"AccessKeyId": "access", "SecretAccessKey": "secret"}
+    }
+    # Fake that the bucket does not exist
+    boto3.return_value.head_bucket.side_effect = botocore.exceptions.ClientError(
+        error_response={}, operation_name=""
+    )
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        args = ["create", "pytest-bucket-simonw-1", "-c", "--public"]
+        result = runner.invoke(cli, args, catch_exceptions=False)
+        assert result.exit_code == 0
+        assert result.output == (
+            "Created bucket: pytest-bucket-simonw-1\n"
+            "Attached bucket policy allowing public access\n"
+            "Attached policy s3.read-write.pytest-bucket-simonw-1 to user s3.read-write.pytest-bucket-simonw-1\n"
+            "Created access key for user: s3.read-write.pytest-bucket-simonw-1\n"
+            "{\n"
+            '    "AccessKeyId": "access",\n'
+            '    "SecretAccessKey": "secret"\n'
+            "}\n"
+        )
+        assert [str(c) for c in boto3.mock_calls] == [
+            "call('s3')",
+            "call('iam')",
+            "call('sts')",
+            "call().head_bucket(Bucket='pytest-bucket-simonw-1')",
+            "call().create_bucket(Bucket='pytest-bucket-simonw-1')",
+            "call().put_bucket_policy(Bucket='pytest-bucket-simonw-1', "
+            'Policy=\'{"Version": "2012-10-17", "Statement": [{"Sid": '
+            '"AllowAllGetObject", "Effect": "Allow", "Principal": "*", "Action": '
+            '["s3:GetObject"], "Resource": '
+            '["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}\')',
+            "call().get_user(UserName='s3.read-write.pytest-bucket-simonw-1')",
+            "call().put_user_policy(PolicyDocument='{}', PolicyName='s3.read-write.pytest-bucket-simonw-1', UserName='s3.read-write.pytest-bucket-simonw-1')".format(
+                READ_WRITE_POLICY.replace("$!BUCKET_NAME!$", "pytest-bucket-simonw-1"),
+            ),
+            "call().create_access_key(UserName='s3.read-write.pytest-bucket-simonw-1')",
+        ]
+
+
 def test_create_format_ini(mocker):
     boto3 = mocker.patch("boto3.client")
     boto3.return_value = Mock()

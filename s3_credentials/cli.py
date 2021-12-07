@@ -186,6 +186,11 @@ def policy(buckets, read_only, write_only, public_bucket):
     help="Create buckets if they do not already exist",
     is_flag=True,
 )
+@click.option(
+    "--public",
+    help="Make the created bucket public: anyone will be able to download files if they know their name",
+    is_flag=True,
+)
 @click.option("--read-only", help="Only allow reading from the bucket", is_flag=True)
 @click.option("--write-only", help="Only allow writing to the bucket", is_flag=True)
 @click.option(
@@ -211,6 +216,7 @@ def create(
     duration,
     username,
     create_bucket,
+    public,
     read_only,
     write_only,
     policy,
@@ -263,6 +269,10 @@ def create(
                             "LocationConstraint": bucket_region
                         }
                     }
+                bucket_policy = {}
+                if public:
+                    bucket_policy = policies.bucket_policy_allow_all_get(bucket)
+
                 if dry_run:
                     click.echo(
                         "Would create bucket: '{}'{}".format(
@@ -274,12 +284,20 @@ def create(
                             ),
                         )
                     )
+                    if bucket_policy:
+                        click.echo("... then the following bucket policy:")
+                        click.echo(json.dumps(bucket_policy, indent=4))
                 else:
                     s3.create_bucket(Bucket=bucket, **kwargs)
                     info = "Created bucket: {}".format(bucket)
                     if bucket_region:
                         info += "in region: {}".format(bucket_region)
                     log(info)
+                    if bucket_policy:
+                        s3.put_bucket_policy(
+                            Bucket=bucket, Policy=json.dumps(bucket_policy)
+                        )
+                        log("Attached bucket policy allowing public access")
     # At this point the buckets definitely exist - create the inline policy
     bucket_access_policy = {}
     if policy:
