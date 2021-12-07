@@ -364,6 +364,11 @@ Use `-` as the file name to upload from standard input:
 
 This command shows a progress bar by default. Use `-s` or `--silent` to hide the progress bar.
 
+The `Content-Type` on the uploaded object will be automatically set based on the file extension. If you are using standard input, or you want to over-ride the detected type, you can do so using the `--content-type` option:
+
+    echo "<h1>Hello World</h1>" | \
+      s3-credentials put-object my-bucket hello.html - --content-type "text/html"
+
 ### get-object
 
 To download a file from a bucket use `s3-credentials get-object`:
