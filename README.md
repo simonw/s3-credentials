@@ -107,7 +107,7 @@ For permanent credentials, the steps are as follows:
 
 1. Confirm that each of the specified buckets exists. If they do not and `--create-bucket` was passed create them - otherwise exit with an error.
 2. If a username was not specified, derive a username using the `s3.$permission.$buckets` format.
-3. If a user with that username does not exist, create one with an S3 permissions boundary that respects the `--read-only` option - unless `--user-permissions-boundary=none` was passed (or a custom permissions boundary string).
+3. If a user with that username does not exist, create one with an S3 permissions boundary of [AmazonS3ReadOnlyAccess](https://github.com/glassechidna/trackiam/blob/master/policies/AmazonS3ReadOnlyAccess.json) for `--read-only` or [AmazonS3FullAccess](https://github.com/glassechidna/trackiam/blob/master/policies/AmazonS3FullAccess.json) otherwise - unless `--user-permissions-boundary=none` was passed, or a custom permissions boundary string.
 4. For each specified bucket, add an inline IAM policy to the user that gives them permission to either read-only, write-only or read-write against that bucket.
 5. Create a new access key for that user and output the key and its secret to the console.
 
