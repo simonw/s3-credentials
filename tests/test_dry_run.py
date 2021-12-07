@@ -51,6 +51,16 @@ Would ensure role: 's3-credentials.AmazonS3FullAccess'
 Would assume role using following policy for 1200 seconds:*"""
             ),
         ),
+        (
+            ["--public"],
+            (
+                """Would create bucket: 'my-bucket'
+... then attach the following bucket policy to it:*
+Would create user: 's3.read-write.my-bucket' with permissions boundary: 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
+Would attach policy called 's3.read-write.my-bucket' to user 's3.read-write.my-bucket', details:*
+Would call create access key for user 's3.read-write.my-bucket'"""
+            ),
+        ),
     ),
 )
 def test_dry_run(options, expected):

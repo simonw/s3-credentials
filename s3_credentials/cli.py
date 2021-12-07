@@ -285,7 +285,7 @@ def create(
                         )
                     )
                     if bucket_policy:
-                        click.echo("... then the following bucket policy:")
+                        click.echo("... then attach the following bucket policy to it:")
                         click.echo(json.dumps(bucket_policy, indent=4))
                 else:
                     s3.create_bucket(Bucket=bucket, **kwargs)
