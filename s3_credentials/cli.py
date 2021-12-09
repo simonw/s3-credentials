@@ -291,7 +291,7 @@ def create(
                     s3.create_bucket(Bucket=bucket, **kwargs)
                     info = "Created bucket: {}".format(bucket)
                     if bucket_region:
-                        info += "in region: {}".format(bucket_region)
+                        info += " in region: {}".format(bucket_region)
                     log(info)
                     if bucket_policy:
                         s3.put_bucket_policy(
