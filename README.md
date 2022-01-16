@@ -9,12 +9,6 @@ A tool for creating credentials for accessing S3 buckets
 
 For project background, see [s3-credentials: a tool for creating credentials for S3 buckets](https://simonwillison.net/2021/Nov/3/s3-credentials/) on my blog.
 
-## ⚠️ Warning
-
-I am not an AWS security expert. You shoud review how this tool works carefully before using it against with own AWS account.
-
-If you are an AWS security expert I would [love to get your feedback](https://github.com/simonw/s3-credentials/issues/7)!
-
 ## Installation
 
 Install this tool using `pip`:
