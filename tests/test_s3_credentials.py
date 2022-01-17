@@ -297,6 +297,7 @@ CREATE_TESTS = (
     ([], False, READ_WRITE_POLICY, "read-write"),
     (["--read-only"], False, READ_ONLY_POLICY, "read-only"),
     (["--write-only"], False, WRITE_ONLY_POLICY, "write-only"),
+    (["--prefix", "my-prefix/"], False, PREFIX_POLICY, "read-write"),
     (["--policy", "POLICYFILEPATH"], False, CUSTOM_POLICY, "custom"),
     (["--policy", "-"], True, CUSTOM_POLICY, "custom"),
     (["--policy", CUSTOM_POLICY], False, CUSTOM_POLICY, "custom"),
