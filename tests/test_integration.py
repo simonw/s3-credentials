@@ -10,6 +10,7 @@ import json
 import pytest
 import secrets
 import time
+import urllib
 
 # Mark all tests in this module with "integration":
 pytestmark = pytest.mark.integration
@@ -22,7 +23,7 @@ def cleanup():
     cleanup_any_resources()
 
 
-def test_create_bucket_with_read_write():
+def test_create_bucket_with_read_write(tmpdir):
     bucket_name = "s3-credentials-tests.read-write.{}".format(secrets.token_hex(4))
     # Bucket should not exist
     s3 = boto3.client("s3")
@@ -37,17 +38,18 @@ def test_create_bucket_with_read_write():
     time.sleep(10)
     assert bucket_exists(s3, bucket_name)
     # Use the credentials to write a file to that bucket
+    test_write = tmpdir / "test-write.txt"
+    test_write.write_text("hello", "utf-8")
+    get_output("put-object", bucket_name, "test-write.txt", str(test_write))
     credentials_s3.put_object(
-        Body="hello".encode("utf-8"), Bucket=bucket_name, Key="hello.txt"
+        Body="hello".encode("utf-8"), Bucket=bucket_name, Key="test-write.txt"
     )
     # Use default s3 client to check that the write succeeded
-    get_object_response = s3.get_object(Bucket=bucket_name, Key="hello.txt")
+    get_object_response = s3.get_object(Bucket=bucket_name, Key="test-write.txt")
     assert get_object_response["Body"].read() == b"hello"
     # Check we can read the file using the credentials too
-    credentials_response = credentials_s3.get_object(
-        Bucket=bucket_name, Key="hello.txt"
-    )
-    assert credentials_response["Body"].read() == b"hello"
+    output = get_output("get-object", bucket_name, "test-write.txt")
+    assert output == "hello"
 
 
 def test_create_bucket_read_only_duration_15():
@@ -208,3 +210,45 @@ def cleanup_any_resources():
         boto3.resource("s3").Bucket(bucket).objects.all().delete()
         # Delete the bucket
         s3.delete_bucket(Bucket=bucket)
+
+
+def test_public_bucket():
+    bucket_name = "s3-credentials-tests.public-bucket.{}".format(secrets.token_hex(4))
+    s3 = boto3.client("s3")
+    assert not bucket_exists(s3, bucket_name)
+    credentials_decoded = json.loads(
+        get_output("create", bucket_name, "-c", "--duration", "15m", "--public")
+    )
+    assert set(credentials_decoded.keys()) == {
+        "AccessKeyId",
+        "SecretAccessKey",
+        "SessionToken",
+        "Expiration",
+    }
+    # Wait for everything to exist
+    time.sleep(5)
+    # Use those credentials to upload a file
+    content = "<h1>Hello world</h1>"
+    get_output(
+        "put-object",
+        bucket_name,
+        "hello.html",
+        "-",
+        "--content-type",
+        "text/html",
+        "--access-key",
+        credentials_decoded["AccessKeyId"],
+        "--secret-key",
+        credentials_decoded["SecretAccessKey"],
+        "--session-token",
+        credentials_decoded["SessionToken"],
+        input=content,
+    )
+    # It should be publicly accessible
+    url = "https://s3.amazonaws.com/{}/hello.html".format(bucket_name)
+    print(url)
+    response = urllib.request.urlopen(url)
+    actual_content = response.read().decode("utf-8")
+    assert response.status == 200
+    assert response.headers["content-type"] == "text/html"
+    assert actual_content == content

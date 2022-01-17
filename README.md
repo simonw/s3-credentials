@@ -9,12 +9,6 @@ A tool for creating credentials for accessing S3 buckets
 
 For project background, see [s3-credentials: a tool for creating credentials for S3 buckets](https://simonwillison.net/2021/Nov/3/s3-credentials/) on my blog.
 
-## ⚠️ Warning
-
-I am not an AWS security expert. You shoud review how this tool works carefully before using it against with own AWS account.
-
-If you are an AWS security expert I would [love to get your feedback](https://github.com/simonw/s3-credentials/issues/7)!
-
 ## Installation
 
 Install this tool using `pip`:
@@ -90,6 +84,7 @@ The `create` command has a number of options:
 - `--duration 15m`: For temporary credentials, how long should they last? This can be specified in seconds, minutes or hours using a suffix of `s`, `m` or `h` - but must be between 15 minutes and 12 hours.
 - `--username TEXT`: The username to use for the user that is created by the command (or the username of an existing user if you do not want to create a new one). If ommitted a default such as `s3.read-write.static.niche-museums.com` will be used.
 - `-c, --create-bucket`: Create the buckets if they do not exist. Without this any missing buckets will be treated as an error.
+- `--public`: When creating a bucket, set it so that any file uploaded to that bucket can be downloaded by anyone who knows its filename. This attaches the [public bucket policy](#public-bucket-policy) shown below.
 - `--read-only`: The user should only be allowed to read files from the bucket.
 - `--write-only`: The user should only be allowed to write files to the bucket, but not read them. This can be useful for logging and backups.
 - `--policy filepath-or-string`: A custom policy document (as a file path, literal JSON string or `-` for standard input) - see below.
@@ -106,7 +101,7 @@ For permanent credentials, the steps are as follows:
 
 1. Confirm that each of the specified buckets exists. If they do not and `--create-bucket` was passed create them - otherwise exit with an error.
 2. If a username was not specified, derive a username using the `s3.$permission.$buckets` format.
-3. If a user with that username does not exist, create one with an S3 permissions boundary that respects the `--read-only` option - unless `--user-permissions-boundary=none` was passed (or a custom permissions boundary string).
+3. If a user with that username does not exist, create one with an S3 permissions boundary of [AmazonS3ReadOnlyAccess](https://github.com/glassechidna/trackiam/blob/master/policies/AmazonS3ReadOnlyAccess.json) for `--read-only` or [AmazonS3FullAccess](https://github.com/glassechidna/trackiam/blob/master/policies/AmazonS3FullAccess.json) otherwise - unless `--user-permissions-boundary=none` was passed, or a custom permissions boundary string.
 4. For each specified bucket, add an inline IAM policy to the user that gives them permission to either read-only, write-only or read-write against that bucket.
 5. Create a new access key for that user and output the key and its secret to the console.
 
@@ -171,6 +166,7 @@ You can use the `s3-credentials policy` command to generate the JSON policy docu
 
 - `--read-only` - generate a read-only policy
 - `--write-only` - generate a write-only policy
+- `--public-bucket` - generate a bucket policy for a public bucket
 
 With none of these options it defaults to a read-write policy.
 ```
@@ -351,6 +347,33 @@ User: s3.read-write.simonw-test-bucket-10
   Deleted user
 ```
 You can pass it multiple usernames to delete multiple users at a time.
+
+### put-object
+
+You can upload a file to a key in an S3 bucket using `s3-credentials put-object`:
+
+    s3-credentials put-object my-bucket my-key.txt /path/to/file.txt
+
+Use `-` as the file name to upload from standard input:
+
+    echo "Hello" | s3-credentials put-object my-bucket hello.txt -
+
+This command shows a progress bar by default. Use `-s` or `--silent` to hide the progress bar.
+
+The `Content-Type` on the uploaded object will be automatically set based on the file extension. If you are using standard input, or you want to over-ride the detected type, you can do so using the `--content-type` option:
+
+    echo "<h1>Hello World</h1>" | \
+      s3-credentials put-object my-bucket hello.html - --content-type "text/html"
+
+### get-object
+
+To download a file from a bucket use `s3-credentials get-object`:
+
+    s3-credentials get-object my-bucket hello.txt
+
+This defaults to outputting the downloaded file to the terminal. You can instead direct it to save to a file on disk using the `-o` or `--output` option:
+
+    s3-credentials get-object my-bucket hello.txt -o /path/to/hello.txt
 
 ## Common options
 
@@ -584,6 +607,36 @@ cog.out(
 ```
 <!-- [[[end]]] -->
 
+### public bucket policy
+
+Buckets created using the `--public` option will have the following bucket policy attached to them:
+
+<!-- [[[cog
+result = runner.invoke(cli.cli, ["policy", "my-s3-bucket", "--public-bucket"])
+cog.out(
+    "```\n{}\n```".format(json.dumps(json.loads(result.output), indent=2))
+)
+]]] -->
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowAllGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": [
+        "s3:GetObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket/*"
+      ]
+    }
+  ]
+}
+```
+<!-- [[[end]]] -->
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
@@ -614,7 +667,7 @@ The main tests all use stubbed interfaces to AWS, so will not make any outbound 
 
 There is also a suite of integration tests in `tests/test_integration.py` which DO make API calls to AWS, using credentials from your environment variables or `~/.aws/credentials` file.
 
-These tests are skipped by default. If you have AWS configured with an account that has permission to run `s3-credentials` (create users, roles, buckets etc) you can run these tests using:
+These tests are skipped by default. If you have AWS configured with an account that has permission to run the actions required by `s3-credentials` (create users, roles, buckets etc) you can run these tests using:
 
     pytest --integration
 

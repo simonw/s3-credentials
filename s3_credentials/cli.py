@@ -3,8 +3,12 @@ import boto3
 import botocore
 import click
 import configparser
+import io
 import json
+import mimetypes
+import os
 import re
+import sys
 from . import policies
 
 
@@ -122,8 +126,22 @@ class DurationParam(click.ParamType):
 @click.option(
     "--prefix", help="Restrict to keys starting with this prefix", default="*"
 )
-def policy(buckets, read_only, write_only, prefix):
+@click.option(
+    "--public-bucket",
+    help="Bucket policy for allowing public access",
+    is_flag=True,
+)
+def policy(buckets, read_only, write_only, prefix, public_bucket):
     "Generate JSON policy for one or more buckets"
+    if public_bucket:
+        if len(buckets) != 1:
+            raise click.ClickException(
+                "--public-bucket policy can only be generated for a single bucket"
+            )
+        click.echo(
+            json.dumps(policies.bucket_policy_allow_all_get(buckets[0]), indent=4)
+        )
+        return
     permission = "read-write"
     if read_only:
         permission = "read-only"
@@ -175,6 +193,11 @@ def policy(buckets, read_only, write_only, prefix):
 @click.option(
     "--prefix", help="Restrict to keys starting with this prefix", default="*"
 )
+@click.option(
+    "--public",
+    help="Make the created bucket public: anyone will be able to download files if they know their name",
+    is_flag=True,
+)
 @click.option("--read-only", help="Only allow reading from the bucket", is_flag=True)
 @click.option("--write-only", help="Only allow writing to the bucket", is_flag=True)
 @click.option(
@@ -201,6 +224,7 @@ def create(
     username,
     create_bucket,
     prefix,
+    public,
     read_only,
     write_only,
     policy,
@@ -253,6 +277,10 @@ def create(
                             "LocationConstraint": bucket_region
                         }
                     }
+                bucket_policy = {}
+                if public:
+                    bucket_policy = policies.bucket_policy_allow_all_get(bucket)
+
                 if dry_run:
                     click.echo(
                         "Would create bucket: '{}'{}".format(
@@ -264,14 +292,24 @@ def create(
                             ),
                         )
                     )
+                    if bucket_policy:
+                        click.echo("... then attach the following bucket policy to it:")
+                        click.echo(json.dumps(bucket_policy, indent=4))
                 else:
                     s3.create_bucket(Bucket=bucket, **kwargs)
                     info = "Created bucket: {}".format(bucket)
                     if bucket_region:
-                        info += "in region: {}".format(bucket_region)
+                        info += " in region: {}".format(bucket_region)
                     log(info)
+
+                    if bucket_policy:
+                        s3.put_bucket_policy(
+                            Bucket=bucket, Policy=json.dumps(bucket_policy)
+                        )
+                        log("Attached bucket policy allowing public access")
     # At this point the buckets definitely exist - create the inline policy for assume_role()
     assume_role_policy = {}
+    bucket_access_policy = {}
     if policy:
         assume_role_policy = json.loads(policy.replace("$!BUCKET_NAME!$", bucket))
     else:
@@ -648,3 +686,67 @@ def list_bucket(bucket, **boto_options):
     for page in paginator.paginate(Bucket=bucket):
         for row in page["Contents"]:
             click.echo(json.dumps(row, indent=4, default=str))
+
+
+@cli.command()
+@click.argument("bucket")
+@click.argument("key")
+@click.argument(
+    "content",
+    type=click.Path(
+        exists=True, file_okay=True, dir_okay=False, readable=True, allow_dash=True
+    ),
+)
+@click.option(
+    "--content-type",
+    help="Content-Type to use (default is auto-detected based on file extension)",
+)
+@click.option("silent", "-s", "--silent", is_flag=True, help="Don't show progress bar")
+@common_boto3_options
+def put_object(bucket, key, content, content_type, silent, **boto_options):
+    "Upload an object to an S3 bucket"
+    s3 = make_client("s3", **boto_options)
+    size = None
+    extra_args = {}
+    if content == "-":
+        # boto needs to be able to seek
+        fp = io.BytesIO(sys.stdin.buffer.read())
+        if not silent:
+            size = fp.getbuffer().nbytes
+    else:
+        if not content_type:
+            content_type = mimetypes.guess_type(content)[0]
+        fp = click.open_file(content, "rb")
+        if not silent:
+            size = os.path.getsize(content)
+    if content_type is not None:
+        extra_args["ContentType"] = content_type
+    if not silent:
+        # Show progress bar
+        with click.progressbar(length=size, label="Uploading") as bar:
+            s3.upload_fileobj(
+                fp, bucket, key, Callback=bar.update, ExtraArgs=extra_args
+            )
+    else:
+        s3.upload_fileobj(fp, bucket, key, ExtraArgs=extra_args)
+
+
+@cli.command()
+@click.argument("bucket")
+@click.argument("key")
+@click.option(
+    "output",
+    "-o",
+    "--output",
+    type=click.Path(file_okay=True, dir_okay=False, writable=True, allow_dash=False),
+    help="Write to this file instead of stdout",
+)
+@common_boto3_options
+def get_object(bucket, key, output, **boto_options):
+    "Download an object from an S3 bucket"
+    s3 = make_client("s3", **boto_options)
+    if not output:
+        fp = sys.stdout.buffer
+    else:
+        fp = click.open_file(output, "wb")
+    s3.download_fileobj(bucket, key, fp)
