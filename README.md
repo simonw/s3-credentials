@@ -519,6 +519,71 @@ cog.out(
 ```
 <!-- [[[end]]] -->
 
+### --prefix my-prefix/
+
+<!-- [[[cog
+result = runner.invoke(cli.cli, ["policy", "my-s3-bucket", "--prefix", "my-prefix/"])
+cog.out(
+    "```\n{}\n```".format(json.dumps(json.loads(result.output), indent=2))
+)
+]]] -->
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket"
+      ],
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": [
+            "my-prefix/*"
+          ]
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectAcl",
+        "s3:GetObjectLegalHold",
+        "s3:GetObjectRetention",
+        "s3:GetObjectTagging"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket/my-prefix/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket/my-prefix/*"
+      ]
+    }
+  ]
+}
+```
+<!-- [[[end]]] -->
+
 ## Development
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
