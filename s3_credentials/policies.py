@@ -21,22 +21,41 @@ def read_only(bucket, prefix="*"):
 
 def read_only_statements(bucket, prefix="*"):
     # https://github.com/simonw/s3-credentials/issues/23
+    statements = []
     if not prefix.endswith("*"):
         prefix += "*"
-    allow_list = {
-        "Effect": "Allow",
-        "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
-        "Resource": ["arn:aws:s3:::{}".format(bucket)],
-    }
     if prefix != "*":
-        allow_list["Condition"] = {
-            "StringLike": {
-                # Note that prefix must end in / if user wants to limit to a folder
-                "s3:prefix": [prefix]
+        statements.append(
+            {
+                "Effect": "Allow",
+                "Action": ["s3:GetBucketLocation"],
+                "Resource": ["arn:aws:s3:::{}".format(bucket)],
             }
-        }
-    return [
-        allow_list,
+        )
+        statements.append(
+            {
+                "Effect": "Allow",
+                "Action": ["s3:ListBucket"],
+                "Resource": ["arn:aws:s3:::{}".format(bucket)],
+                "Condition": {
+                    "StringLike": {
+                        # Note that prefix must end in / if user wants to limit to a folder
+                        "s3:prefix": [prefix]
+                    }
+                },
+            }
+        )
+    else:
+        # We can combine s3:GetBucketLocation and s3:ListBucket into one
+        statements.append(
+            {
+                "Effect": "Allow",
+                "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+                "Resource": ["arn:aws:s3:::{}".format(bucket)],
+            }
+        )
+
+    return statements + [
         {
             "Effect": "Allow",
             "Action": [
