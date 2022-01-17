@@ -167,6 +167,55 @@ def test_read_write_bucket_prefix_permanent_credentials():
         read_file(credentials_s3, bucket_name, "should-not-be-visible.txt")
 
 
+def test_list_bucket_including_with_prefix():
+    bucket_name = "s3-credentials-tests.lbucket.{}".format(secrets.token_hex(4))
+    s3 = boto3.client("s3")
+    assert not bucket_exists(s3, bucket_name)
+    credentials_decoded = json.loads(get_output("create", bucket_name, "-c"))
+    time.sleep(10)
+    credentials_s3 = boto3.session.Session(
+        aws_access_key_id=credentials_decoded["AccessKeyId"],
+        aws_secret_access_key=credentials_decoded["SecretAccessKey"],
+    ).client("s3")
+    credentials_s3.put_object(
+        Body="one".encode("utf-8"),
+        Bucket=bucket_name,
+        Key="one/file.txt",
+    )
+    credentials_s3.put_object(
+        Body="two".encode("utf-8"),
+        Bucket=bucket_name,
+        Key="two/file.txt",
+    )
+    # Try list-bucket against everything
+    everything_output = get_output(
+        "list-bucket",
+        bucket_name,
+        "--access-key",
+        credentials_decoded["AccessKeyId"],
+        "--secret-key",
+        credentials_decoded["SecretAccessKey"],
+    )
+    # Nasty temporary hack until I solve --nl output
+    bits = everything_output.split("}\n{")
+    everything = json.loads("[" + "},{".join(bits) + "]")
+    assert [e["Key"] for e in everything] == ["one/file.txt", "two/file.txt"]
+    # Now use --prefix
+    prefix_output = json.loads(
+        get_output(
+            "list-bucket",
+            bucket_name,
+            "--prefix",
+            "one/",
+            "--access-key",
+            credentials_decoded["AccessKeyId"],
+            "--secret-key",
+            credentials_decoded["SecretAccessKey"],
+        )
+    )
+    assert prefix_output["Key"] == "one/file.txt"
+
+
 def get_output(*args, input=None):
     runner = CliRunner(mix_stderr=False)
     with runner.isolated_filesystem():

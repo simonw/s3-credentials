@@ -678,14 +678,21 @@ def ensure_s3_role_exists(iam, sts):
 
 @cli.command()
 @click.argument("bucket")
+@click.option("--prefix", help="List keys starting with this prefix")
 @common_boto3_options
-def list_bucket(bucket, **boto_options):
+def list_bucket(bucket, prefix, **boto_options):
     "List content of bucket"
     s3 = make_client("s3", **boto_options)
     paginator = s3.get_paginator("list_objects_v2")
-    for page in paginator.paginate(Bucket=bucket):
-        for row in page["Contents"]:
-            click.echo(json.dumps(row, indent=4, default=str))
+    kwargs = {"Bucket": bucket}
+    if prefix:
+        kwargs["Prefix"] = prefix
+    try:
+        for page in paginator.paginate(**kwargs):
+            for row in page["Contents"]:
+                click.echo(json.dumps(row, indent=4, default=str))
+    except botocore.exceptions.ClientError as e:
+        raise click.ClickException(e)
 
 
 @cli.command()
