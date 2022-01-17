@@ -129,7 +129,7 @@ def test_read_write_bucket_prefix():
     )
     assert read_file(credentials_s3, bucket_name, "my/prefix/file.txt") == "hello"
     # Should NOT be able to read should-not-be-visible.txt
-    with pytest.raises(AssertionError):
+    with pytest.raises(botocore.exceptions.ClientError):
         read_file(credentials_s3, bucket_name, "should-not-be-visible.txt")
 
 
