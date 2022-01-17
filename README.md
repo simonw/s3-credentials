@@ -602,7 +602,7 @@ The main tests all use stubbed interfaces to AWS, so will not make any outbound 
 
 There is also a suite of integration tests in `tests/test_integration.py` which DO make API calls to AWS, using credentials from your environment variables or `~/.aws/credentials` file.
 
-These tests are skipped by default. If you have AWS configured with an account that has permission to run `s3-credentials` (create users, roles, buckets etc) you can run these tests using:
+These tests are skipped by default. If you have AWS configured with an account that has permission to run the actions required by `s3-credentials` (create users, roles, buckets etc) you can run these tests using:
 
     pytest --integration
 
