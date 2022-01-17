@@ -735,3 +735,31 @@ def test_policy(options, expected):
         catch_exceptions=False,
     )
     assert json.loads(result.output) == json.loads(expected)
+
+
+def test_list_bucket(stub_s3):
+    stub_s3.add_response(
+        "list_objects_v2",
+        {
+            "Contents": [
+                {
+                    "Key": "yolo-causeway-1.jpg",
+                    "LastModified": "2019-12-26 17:00:22+00:00",
+                    "ETag": '"87abea888b22089cabe93a0e17cf34a4"',
+                    "Size": 5923104,
+                    "StorageClass": "STANDARD",
+                }
+            ]
+        },
+    )
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["list-bucket", "test-bucket"])
+        assert result.exit_code == 0
+        assert json.loads(result.output) == {
+            "Key": "yolo-causeway-1.jpg",
+            "LastModified": "2019-12-26 17:00:22+00:00",
+            "ETag": '"87abea888b22089cabe93a0e17cf34a4"',
+            "Size": 5923104,
+            "StorageClass": "STANDARD",
+        }
