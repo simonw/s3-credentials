@@ -92,10 +92,79 @@ def test_create_bucket_read_only_duration_15():
         Key="hello-read-only.txt",
     )
     # Client should be able to read this
-    credentials_response = credentials_s3.get_object(
-        Bucket=bucket_name, Key="hello-read-only.txt"
+    assert (
+        read_file(credentials_s3, bucket_name, "hello-read-only.txt")
+        == "hello read-only"
     )
-    assert credentials_response["Body"].read() == b"hello read-only"
+
+
+def test_read_write_bucket_prefix_temporary_credentials():
+    bucket_name = "s3-credentials-tests.read-write-prefix.{}".format(
+        secrets.token_hex(4)
+    )
+    s3 = boto3.client("s3")
+    assert not bucket_exists(s3, bucket_name)
+    credentials_decoded = json.loads(
+        get_output(
+            "create", bucket_name, "-c", "--duration", "15m", "--prefix", "my/prefix/"
+        )
+    )
+    # Wait for everything to exist
+    time.sleep(10)
+    # Create client with these credentials
+    credentials_s3 = boto3.session.Session(
+        aws_access_key_id=credentials_decoded["AccessKeyId"],
+        aws_secret_access_key=credentials_decoded["SecretAccessKey"],
+        aws_session_token=credentials_decoded["SessionToken"],
+    ).client("s3")
+    # Write file with root credentials that I should not be able to see
+    s3.put_object(
+        Body="hello".encode("utf-8"),
+        Bucket=bucket_name,
+        Key="should-not-be-visible.txt",
+    )
+    # I should be able to write to and read from /my/prefix/file.txt
+    credentials_s3.put_object(
+        Body="hello".encode("utf-8"),
+        Bucket=bucket_name,
+        Key="my/prefix/file.txt",
+    )
+    assert read_file(credentials_s3, bucket_name, "my/prefix/file.txt") == "hello"
+    # Should NOT be able to read should-not-be-visible.txt
+    with pytest.raises(botocore.exceptions.ClientError):
+        read_file(credentials_s3, bucket_name, "should-not-be-visible.txt")
+
+
+def test_read_write_bucket_prefix_permanent_credentials():
+    bucket_name = "s3-credentials-tests.rw-prefix-perm.{}".format(secrets.token_hex(4))
+    s3 = boto3.client("s3")
+    assert not bucket_exists(s3, bucket_name)
+    credentials_decoded = json.loads(
+        get_output("create", bucket_name, "-c", "--prefix", "my/prefix-2/")
+    )
+    # Wait for everything to exist
+    time.sleep(10)
+    # Create client with these credentials
+    credentials_s3 = boto3.session.Session(
+        aws_access_key_id=credentials_decoded["AccessKeyId"],
+        aws_secret_access_key=credentials_decoded["SecretAccessKey"],
+    ).client("s3")
+    # Write file with root credentials that I should not be able to see
+    s3.put_object(
+        Body="hello".encode("utf-8"),
+        Bucket=bucket_name,
+        Key="should-not-be-visible.txt",
+    )
+    # I should be able to write to and read from /my/prefix/file.txt
+    credentials_s3.put_object(
+        Body="hello".encode("utf-8"),
+        Bucket=bucket_name,
+        Key="my/prefix-2/file.txt",
+    )
+    assert read_file(credentials_s3, bucket_name, "my/prefix-2/file.txt") == "hello"
+    # Should NOT be able to read should-not-be-visible.txt
+    with pytest.raises(botocore.exceptions.ClientError):
+        read_file(credentials_s3, bucket_name, "should-not-be-visible.txt")
 
 
 def get_output(*args, input=None):
@@ -105,6 +174,11 @@ def get_output(*args, input=None):
     assert result.exit_code == 0, result.stderr
     print(result.stderr)
     return result.stdout
+
+
+def read_file(s3, bucket, path):
+    response = s3.get_object(Bucket=bucket, Key=path)
+    return response["Body"].read().decode("utf-8")
 
 
 def cleanup_any_resources():

@@ -84,6 +84,7 @@ The `create` command has a number of options:
 - `--duration 15m`: For temporary credentials, how long should they last? This can be specified in seconds, minutes or hours using a suffix of `s`, `m` or `h` - but must be between 15 minutes and 12 hours.
 - `--username TEXT`: The username to use for the user that is created by the command (or the username of an existing user if you do not want to create a new one). If ommitted a default such as `s3.read-write.static.niche-museums.com` will be used.
 - `-c, --create-bucket`: Create the buckets if they do not exist. Without this any missing buckets will be treated as an error.
+- `--prefix my-prefix/`: Credentials should only allow access to keys in the S3 bucket that start with this prefix.
 - `--public`: When creating a bucket, set it so that any file uploaded to that bucket can be downloaded by anyone who knows its filename. This attaches the [public bucket policy](#public-bucket-policy) shown below.
 - `--read-only`: The user should only be allowed to read files from the bucket.
 - `--write-only`: The user should only be allowed to write files to the bucket, but not read them. This can be useful for logging and backups.
@@ -166,6 +167,7 @@ You can use the `s3-credentials policy` command to generate the JSON policy docu
 
 - `--read-only` - generate a read-only policy
 - `--write-only` - generate a write-only policy
+- `--prefix` - policy should be restricted to keys in the bucket that start with this prefix
 - `--public-bucket` - generate a bucket policy for a public bucket
 
 With none of these options it defaults to a read-write policy.
@@ -535,6 +537,71 @@ cog.out(
       ],
       "Resource": [
         "arn:aws:s3:::my-s3-bucket/*"
+      ]
+    }
+  ]
+}
+```
+<!-- [[[end]]] -->
+
+### --prefix my-prefix/
+
+<!-- [[[cog
+result = runner.invoke(cli.cli, ["policy", "my-s3-bucket", "--prefix", "my-prefix/"])
+cog.out(
+    "```\n{}\n```".format(json.dumps(json.loads(result.output), indent=2))
+)
+]]] -->
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket"
+      ],
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": [
+            "my-prefix/*"
+          ]
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectAcl",
+        "s3:GetObjectLegalHold",
+        "s3:GetObjectRetention",
+        "s3:GetObjectTagging"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket/my-prefix/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket/my-prefix/*"
       ]
     }
   ]

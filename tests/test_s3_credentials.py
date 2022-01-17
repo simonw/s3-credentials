@@ -290,13 +290,14 @@ CUSTOM_POLICY = '{"custom": "policy", "bucket": "$!BUCKET_NAME!$"}'
 READ_WRITE_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:ListBucket", "s3:GetBucketLocation"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectAcl", "s3:GetObjectLegalHold", "s3:GetObjectRetention", "s3:GetObjectTagging"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}, {"Effect": "Allow", "Action": ["s3:PutObject", "s3:DeleteObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}'
 READ_ONLY_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:ListBucket", "s3:GetBucketLocation"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectAcl", "s3:GetObjectLegalHold", "s3:GetObjectRetention", "s3:GetObjectTagging"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}'
 WRITE_ONLY_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:PutObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}'
-
+PREFIX_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:GetBucketLocation"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": ["s3:ListBucket"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"], "Condition": {"StringLike": {"s3:prefix": ["my-prefix/*"]}}}, {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectAcl", "s3:GetObjectLegalHold", "s3:GetObjectRetention", "s3:GetObjectTagging"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/my-prefix/*"]}, {"Effect": "Allow", "Action": ["s3:PutObject", "s3:DeleteObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/my-prefix/*"]}]}'
 
 # Used by both test_create and test_create_duration
 CREATE_TESTS = (
     ([], False, READ_WRITE_POLICY, "read-write"),
     (["--read-only"], False, READ_ONLY_POLICY, "read-only"),
     (["--write-only"], False, WRITE_ONLY_POLICY, "write-only"),
+    (["--prefix", "my-prefix/"], False, PREFIX_POLICY, "read-write"),
     (["--policy", "POLICYFILEPATH"], False, CUSTOM_POLICY, "custom"),
     (["--policy", "-"], True, CUSTOM_POLICY, "custom"),
     (["--policy", CUSTOM_POLICY], False, CUSTOM_POLICY, "custom"),
@@ -723,6 +724,7 @@ def test_auth_option_errors(extra_option):
         ([], READ_WRITE_POLICY),
         (["--read-only"], READ_ONLY_POLICY),
         (["--write-only"], WRITE_ONLY_POLICY),
+        (["--prefix", "my-prefix/"], PREFIX_POLICY),
     ),
 )
 def test_policy(options, expected):

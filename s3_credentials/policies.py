@@ -1,30 +1,61 @@
-def read_write(bucket):
-    return wrap_policy(read_write_statements(bucket))
+def read_write(bucket, prefix="*"):
+    return wrap_policy(read_write_statements(bucket, prefix=prefix))
 
 
-def read_write_statements(bucket):
+def read_write_statements(bucket, prefix="*"):
     # https://github.com/simonw/s3-credentials/issues/24
-    return read_only_statements(bucket) + [
+    if not prefix.endswith("*"):
+        prefix += "*"
+    return read_only_statements(bucket, prefix) + [
         {
             "Effect": "Allow",
             "Action": ["s3:PutObject", "s3:DeleteObject"],
-            "Resource": ["arn:aws:s3:::{}/*".format(bucket)],
+            "Resource": ["arn:aws:s3:::{}/{}".format(bucket, prefix)],
         }
     ]
 
 
-def read_only(bucket):
-    return wrap_policy(read_only_statements(bucket))
+def read_only(bucket, prefix="*"):
+    return wrap_policy(read_only_statements(bucket, prefix))
 
 
-def read_only_statements(bucket):
+def read_only_statements(bucket, prefix="*"):
     # https://github.com/simonw/s3-credentials/issues/23
-    return [
-        {
-            "Effect": "Allow",
-            "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
-            "Resource": ["arn:aws:s3:::{}".format(bucket)],
-        },
+    statements = []
+    if not prefix.endswith("*"):
+        prefix += "*"
+    if prefix != "*":
+        statements.append(
+            {
+                "Effect": "Allow",
+                "Action": ["s3:GetBucketLocation"],
+                "Resource": ["arn:aws:s3:::{}".format(bucket)],
+            }
+        )
+        statements.append(
+            {
+                "Effect": "Allow",
+                "Action": ["s3:ListBucket"],
+                "Resource": ["arn:aws:s3:::{}".format(bucket)],
+                "Condition": {
+                    "StringLike": {
+                        # Note that prefix must end in / if user wants to limit to a folder
+                        "s3:prefix": [prefix]
+                    }
+                },
+            }
+        )
+    else:
+        # We can combine s3:GetBucketLocation and s3:ListBucket into one
+        statements.append(
+            {
+                "Effect": "Allow",
+                "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+                "Resource": ["arn:aws:s3:::{}".format(bucket)],
+            }
+        )
+
+    return statements + [
         {
             "Effect": "Allow",
             "Action": [
@@ -34,22 +65,24 @@ def read_only_statements(bucket):
                 "s3:GetObjectRetention",
                 "s3:GetObjectTagging",
             ],
-            "Resource": ["arn:aws:s3:::{}/*".format(bucket)],
+            "Resource": ["arn:aws:s3:::{}/{}".format(bucket, prefix)],
         },
     ]
 
 
-def write_only(bucket):
-    return wrap_policy(write_only_statements(bucket))
+def write_only(bucket, prefix="*"):
+    return wrap_policy(write_only_statements(bucket, prefix))
 
 
-def write_only_statements(bucket):
+def write_only_statements(bucket, prefix="*"):
     # https://github.com/simonw/s3-credentials/issues/25
+    if not prefix.endswith("*"):
+        prefix += "*"
     return [
         {
             "Effect": "Allow",
             "Action": ["s3:PutObject"],
-            "Resource": ["arn:aws:s3:::{}/*".format(bucket)],
+            "Resource": ["arn:aws:s3:::{}/{}".format(bucket, prefix)],
         }
     ]
 

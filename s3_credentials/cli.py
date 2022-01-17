@@ -124,15 +124,19 @@ class DurationParam(click.ParamType):
 @click.option("--read-only", help="Only allow reading from the bucket", is_flag=True)
 @click.option("--write-only", help="Only allow writing to the bucket", is_flag=True)
 @click.option(
+    "--prefix", help="Restrict to keys starting with this prefix", default="*"
+)
+@click.option(
     "--public-bucket",
     help="Bucket policy for allowing public access",
     is_flag=True,
 )
-def policy(buckets, read_only, write_only, public_bucket):
+def policy(buckets, read_only, write_only, prefix, public_bucket):
+    "Generate JSON policy for one or more buckets"
     if public_bucket:
         if len(buckets) != 1:
             raise click.ClickException(
-                "--public-bucket-policy can only be generated for a single bucket"
+                "--public-bucket policy can only be generated for a single bucket"
             )
         click.echo(
             json.dumps(policies.bucket_policy_allow_all_get(buckets[0]), indent=4)
@@ -146,13 +150,13 @@ def policy(buckets, read_only, write_only, public_bucket):
     statements = []
     if permission == "read-write":
         for bucket in buckets:
-            statements.extend(policies.read_write_statements(bucket))
+            statements.extend(policies.read_write_statements(bucket, prefix))
     elif permission == "read-only":
         for bucket in buckets:
-            statements.extend(policies.read_only_statements(bucket))
+            statements.extend(policies.read_only_statements(bucket, prefix))
     elif permission == "write-only":
         for bucket in buckets:
-            statements.extend(policies.write_only_statements(bucket))
+            statements.extend(policies.write_only_statements(bucket, prefix))
     else:
         assert False, "Unknown permission: {}".format(permission)
     bucket_access_policy = policies.wrap_policy(statements)
@@ -187,6 +191,9 @@ def policy(buckets, read_only, write_only, public_bucket):
     is_flag=True,
 )
 @click.option(
+    "--prefix", help="Restrict to keys starting with this prefix", default="*"
+)
+@click.option(
     "--public",
     help="Make the created bucket public: anyone will be able to download files if they know their name",
     is_flag=True,
@@ -216,6 +223,7 @@ def create(
     duration,
     username,
     create_bucket,
+    prefix,
     public,
     read_only,
     write_only,
@@ -293,29 +301,31 @@ def create(
                     if bucket_region:
                         info += " in region: {}".format(bucket_region)
                     log(info)
+
                     if bucket_policy:
                         s3.put_bucket_policy(
                             Bucket=bucket, Policy=json.dumps(bucket_policy)
                         )
                         log("Attached bucket policy allowing public access")
-    # At this point the buckets definitely exist - create the inline policy
+    # At this point the buckets definitely exist - create the inline policy for assume_role()
+    assume_role_policy = {}
     bucket_access_policy = {}
     if policy:
-        bucket_access_policy = json.loads(policy.replace("$!BUCKET_NAME!$", bucket))
+        assume_role_policy = json.loads(policy.replace("$!BUCKET_NAME!$", bucket))
     else:
         statements = []
         if permission == "read-write":
             for bucket in buckets:
-                statements.extend(policies.read_write_statements(bucket))
+                statements.extend(policies.read_write_statements(bucket, prefix))
         elif permission == "read-only":
             for bucket in buckets:
-                statements.extend(policies.read_only_statements(bucket))
+                statements.extend(policies.read_only_statements(bucket, prefix))
         elif permission == "write-only":
             for bucket in buckets:
-                statements.extend(policies.write_only_statements(bucket))
+                statements.extend(policies.write_only_statements(bucket, prefix))
         else:
             assert False, "Unknown permission: {}".format(permission)
-        bucket_access_policy = policies.wrap_policy(statements)
+        assume_role_policy = policies.wrap_policy(statements)
 
     if duration:
         # We're going to use sts.assume_role() rather than creating a user
@@ -326,7 +336,7 @@ def create(
                     duration
                 )
             )
-            click.echo(json.dumps(bucket_access_policy, indent=4))
+            click.echo(json.dumps(assume_role_policy, indent=4))
         else:
             s3_role_arn = ensure_s3_role_exists(iam, sts)
             log("Assume role against {} for {}s".format(s3_role_arn, duration))
@@ -336,7 +346,7 @@ def create(
                     permission="custom" if policy else permission,
                     buckets=",".join(buckets),
                 ),
-                Policy=json.dumps(bucket_access_policy),
+                Policy=json.dumps(assume_role_policy),
                 DurationSeconds=duration,
             )
             if format_ == "ini":
@@ -391,20 +401,21 @@ def create(
             log("Created {}".format(info))
 
     # Add inline policies to the user so they can access the buckets
+    user_policy = {}
     for bucket in buckets:
         policy_name = "s3.{permission}.{bucket}".format(
             permission="custom" if policy else permission,
             bucket=bucket,
         )
         if policy:
-            policy_dict = json.loads(policy.replace("$!BUCKET_NAME!$", bucket))
+            user_policy = json.loads(policy.replace("$!BUCKET_NAME!$", bucket))
         else:
             if permission == "read-write":
-                policy_dict = policies.read_write(bucket)
+                user_policy = policies.read_write(bucket, prefix)
             elif permission == "read-only":
-                policy_dict = policies.read_only(bucket)
+                user_policy = policies.read_only(bucket, prefix)
             elif permission == "write-only":
-                policy_dict = policies.write_only(bucket)
+                user_policy = policies.write_only(bucket, prefix)
             else:
                 assert False, "Unknown permission: {}".format(permission)
 
@@ -413,12 +424,12 @@ def create(
                 "Would attach policy called '{}' to user '{}', details:\n{}".format(
                     policy_name,
                     username,
-                    json.dumps(policy_dict, indent=4),
+                    json.dumps(user_policy, indent=4),
                 )
             )
         else:
             iam.put_user_policy(
-                PolicyDocument=json.dumps(policy_dict),
+                PolicyDocument=json.dumps(user_policy),
                 PolicyName=policy_name,
                 UserName=username,
             )
