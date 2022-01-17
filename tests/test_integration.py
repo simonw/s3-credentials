@@ -136,15 +136,11 @@ def test_read_write_bucket_prefix_temporary_credentials():
 
 
 def test_read_write_bucket_prefix_permanent_credentials():
-    bucket_name = "s3-credentials-tests.rw-prefix-perm.{}".format(
-        secrets.token_hex(4)
-    )
+    bucket_name = "s3-credentials-tests.rw-prefix-perm.{}".format(secrets.token_hex(4))
     s3 = boto3.client("s3")
     assert not bucket_exists(s3, bucket_name)
     credentials_decoded = json.loads(
-        get_output(
-            "create", bucket_name, "-c", "--prefix", "my/prefix-2/"
-        )
+        get_output("create", bucket_name, "-c", "--prefix", "my/prefix-2/")
     )
     # Wait for everything to exist
     time.sleep(10)
