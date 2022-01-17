@@ -119,7 +119,11 @@ class DurationParam(click.ParamType):
 )
 @click.option("--read-only", help="Only allow reading from the bucket", is_flag=True)
 @click.option("--write-only", help="Only allow writing to the bucket", is_flag=True)
-def policy(buckets, read_only, write_only):
+@click.option(
+    "--prefix", help="Restrict to keys starting with this prefix", default="*"
+)
+def policy(buckets, read_only, write_only, prefix):
+    "Generate JSON policy for one or more buckets"
     permission = "read-write"
     if read_only:
         permission = "read-only"
@@ -128,13 +132,13 @@ def policy(buckets, read_only, write_only):
     statements = []
     if permission == "read-write":
         for bucket in buckets:
-            statements.extend(policies.read_write_statements(bucket))
+            statements.extend(policies.read_write_statements(bucket, prefix))
     elif permission == "read-only":
         for bucket in buckets:
-            statements.extend(policies.read_only_statements(bucket))
+            statements.extend(policies.read_only_statements(bucket, prefix))
     elif permission == "write-only":
         for bucket in buckets:
-            statements.extend(policies.write_only_statements(bucket))
+            statements.extend(policies.write_only_statements(bucket, prefix))
     else:
         assert False, "Unknown permission: {}".format(permission)
     bucket_access_policy = policies.wrap_policy(statements)
