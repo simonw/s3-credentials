@@ -103,7 +103,7 @@ def test_whoami(mocker, stub_sts):
         ),
     ),
 )
-def test_list_users(mocker, option, expected, stub_iam):
+def test_list_users(option, expected, stub_iam):
     stub_iam.add_response(
         "list_users",
         {
