@@ -188,17 +188,16 @@ def test_list_bucket_including_with_prefix():
         Key="two/file.txt",
     )
     # Try list-bucket against everything
-    everything_output = get_output(
-        "list-bucket",
-        bucket_name,
-        "--access-key",
-        credentials_decoded["AccessKeyId"],
-        "--secret-key",
-        credentials_decoded["SecretAccessKey"],
+    everything = json.loads(
+        get_output(
+            "list-bucket",
+            bucket_name,
+            "--access-key",
+            credentials_decoded["AccessKeyId"],
+            "--secret-key",
+            credentials_decoded["SecretAccessKey"],
+        )
     )
-    # Nasty temporary hack until I solve --nl output
-    bits = everything_output.split("}\n{")
-    everything = json.loads("[" + "},{".join(bits) + "]")
     assert [e["Key"] for e in everything] == ["one/file.txt", "two/file.txt"]
     # Now use --prefix
     prefix_output = json.loads(
@@ -213,7 +212,8 @@ def test_list_bucket_including_with_prefix():
             credentials_decoded["SecretAccessKey"],
         )
     )
-    assert prefix_output["Key"] == "one/file.txt"
+    assert len(prefix_output) == 1
+    assert prefix_output[0]["Key"] == "one/file.txt"
 
 
 def get_output(*args, input=None):

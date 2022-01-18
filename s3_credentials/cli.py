@@ -4,11 +4,13 @@ import botocore
 import click
 import configparser
 import io
+import itertools
 import json
 import mimetypes
 import os
 import re
 import sys
+import textwrap
 from . import policies
 
 
@@ -687,12 +689,17 @@ def list_bucket(bucket, prefix, **boto_options):
     kwargs = {"Bucket": bucket}
     if prefix:
         kwargs["Prefix"] = prefix
-    try:
-        for page in paginator.paginate(**kwargs):
-            for row in page["Contents"]:
-                click.echo(json.dumps(row, indent=4, default=str))
-    except botocore.exceptions.ClientError as e:
-        raise click.ClickException(e)
+
+    def iterate():
+        try:
+            for page in paginator.paginate(**kwargs):
+                for row in page["Contents"]:
+                    yield row
+        except botocore.exceptions.ClientError as e:
+            raise click.ClickException(e)
+
+    for line in stream_indented_json(iterate()):
+        click.echo(line)
 
 
 @cli.command()
@@ -757,3 +764,28 @@ def get_object(bucket, key, output, **boto_options):
     else:
         fp = click.open_file(output, "wb")
     s3.download_fileobj(bucket, key, fp)
+
+
+def stream_indented_json(iterator, indent=2):
+    # We have to iterate two-at-a-time so we can know if we
+    # should output a trailing comma or if we have reached
+    # the last item.
+    current_iter, next_iter = itertools.tee(iterator, 2)
+    next(next_iter, None)
+    first = True
+    for item, next_item in itertools.zip_longest(current_iter, next_iter):
+        is_last = next_item is None
+        data = item
+        line = "{first}{serialized}{separator}{last}".format(
+            first="[\n" if first else "",
+            serialized=textwrap.indent(
+                json.dumps(data, indent=indent, default=repr), " " * indent
+            ),
+            separator="," if not is_last else "",
+            last="\n]" if is_last else "",
+        )
+        yield line
+        first = False
+    if first:
+        # We didn't output anything, so yield the empty list
+        yield "[]"
