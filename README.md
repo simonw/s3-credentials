@@ -329,7 +329,9 @@ To list the contents of a bucket, use `list-bucket`:
   }
 ]
 ```
-This accepts the same `--nl`, `--csv` and `--tsv` options as `list-users`.
+You can use the `--prefix myprefix/` option to list only keys that start with a specific prefix.
+
+The commmand accepts the same `--nl`, `--csv` and `--tsv` options as `list-users`.
 
 ### list-user-policies
 
