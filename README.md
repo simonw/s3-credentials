@@ -241,35 +241,37 @@ Add `--details` to include details of the bucket ACL, website configuration and 
 Using `--details` adds three additional API calls for each bucket, so it is advisable to use it with one or more explicit bucket names.
 ```
 % s3-credentials list-buckets simonw-test-public-website-bucket --details
-{
-  "Name": "simonw-test-public-website-bucket",
-  "CreationDate": "2021-11-08 22:53:30+00:00",
-  "bucket_acl": {
-    "Owner": {
-      "DisplayName": "simon",
-      "ID": "abcdeabcdeabcdeabcdeabcdeabcde0001"
+[
+  {
+    "Name": "simonw-test-public-website-bucket",
+    "CreationDate": "2021-11-08 22:53:30+00:00",
+    "bucket_acl": {
+      "Owner": {
+        "DisplayName": "simon",
+        "ID": "abcdeabcdeabcdeabcdeabcdeabcde0001"
+      },
+      "Grants": [
+        {
+          "Grantee": {
+            "DisplayName": "simon",
+            "ID": "abcdeabcdeabcdeabcdeabcdeabcde0001",
+            "Type": "CanonicalUser"
+          },
+          "Permission": "FULL_CONTROL"
+        }
+      ]
     },
-    "Grants": [
-      {
-        "Grantee": {
-          "DisplayName": "simon",
-          "ID": "abcdeabcdeabcdeabcdeabcdeabcde0001",
-          "Type": "CanonicalUser"
-        },
-        "Permission": "FULL_CONTROL"
+    "public_access_block": null,
+    "bucket_website": {
+      "IndexDocument": {
+        "Suffix": "index.html"
+      },
+      "ErrorDocument": {
+        "Key": "error.html"
       }
-    ]
-  },
-  "public_access_block": null,
-  "bucket_website": {
-    "IndexDocument": {
-      "Suffix": "index.html"
-    },
-    "ErrorDocument": {
-      "Key": "error.html"
     }
   }
-}
+]
 ```
 A bucket with `public_access_block` might look like this:
 ```json
