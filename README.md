@@ -116,7 +116,9 @@ You can run the `create` command with the `--dry-run` option to see a summary of
 
 ### Using a custom policy
 
-The policy documents applied by this tool can be seen in [policies.py](https://github.com/simonw/s3-credentials/blob/main/s3_credentials/policies.py). If you want to use a custom policy document you can do so using the `--policy` option.
+The policy documents applied by this tool [are listed below](https://github.com/simonw/s3-credentials/blob/main/README.md#policy-documents).
+
+If you want to use a custom policy document you can do so using the `--policy` option.
 
 First, create your policy document as a JSON file that looks something like this:
 
