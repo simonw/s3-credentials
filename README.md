@@ -609,6 +609,87 @@ cog.out(
 ```
 <!-- [[[end]]] -->
 
+### --prefix my-prefix/ --read-only
+
+<!-- [[[cog
+result = runner.invoke(cli.cli, ["policy", "my-s3-bucket", "--prefix", "my-prefix/", "--read-only"])
+cog.out(
+    "```\n{}\n```".format(json.dumps(json.loads(result.output), indent=2))
+)
+]]] -->
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket"
+      ],
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": [
+            "my-prefix/*"
+          ]
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectAcl",
+        "s3:GetObjectLegalHold",
+        "s3:GetObjectRetention",
+        "s3:GetObjectTagging"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket/my-prefix/*"
+      ]
+    }
+  ]
+}
+```
+<!-- [[[end]]] -->
+
+### --prefix my-prefix/ --write-only
+
+<!-- [[[cog
+result = runner.invoke(cli.cli, ["policy", "my-s3-bucket", "--prefix", "my-prefix/", "--write-only"])
+cog.out(
+    "```\n{}\n```".format(json.dumps(json.loads(result.output), indent=2))
+)
+]]] -->
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-s3-bucket/my-prefix/*"
+      ]
+    }
+  ]
+}
+```
+<!-- [[[end]]] -->
+
 ### public bucket policy
 
 Buckets created using the `--public` option will have the following bucket policy attached to them:

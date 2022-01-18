@@ -216,12 +216,79 @@ def test_list_bucket_including_with_prefix():
     assert prefix_output[0]["Key"] == "one/file.txt"
 
 
+def test_prefix_read_only():
+    bucket_name = "s3-credentials-tests.pre-ro.{}".format(secrets.token_hex(4))
+    s3 = boto3.client("s3")
+    assert not bucket_exists(s3, bucket_name)
+    credentials_decoded = json.loads(
+        get_output("create", bucket_name, "-c", "--read-only", "--prefix", "prefix/")
+    )
+    time.sleep(10)
+    credentials_s3 = boto3.session.Session(
+        aws_access_key_id=credentials_decoded["AccessKeyId"],
+        aws_secret_access_key=credentials_decoded["SecretAccessKey"],
+    ).client("s3")
+    # Should not be able to write objects
+    with pytest.raises(botocore.exceptions.ClientError):
+        credentials_s3.put_object(
+            Body="allowed".encode("utf-8"),
+            Bucket=bucket_name,
+            Key="prefix/allowed.txt",
+        )
+    # So we use root permissions to write these:
+    s3 = boto3.client("s3")
+    s3.put_object(
+        Body="denied".encode("utf-8"),
+        Bucket=bucket_name,
+        Key="denied.txt",
+    )
+    s3.put_object(
+        Body="allowed".encode("utf-8"),
+        Bucket=bucket_name,
+        Key="prefix/allowed.txt",
+    )
+    # list-bucket against everything should error
+    with pytest.raises(GetOutputError):
+        get_output(
+            "list-bucket",
+            bucket_name,
+            "--access-key",
+            credentials_decoded["AccessKeyId"],
+            "--secret-key",
+            credentials_decoded["SecretAccessKey"],
+        )
+
+    # list-bucket against --prefix prefix/ should work
+    items = json.loads(
+        get_output(
+            "list-bucket",
+            bucket_name,
+            "--prefix",
+            "prefix/",
+            "--access-key",
+            credentials_decoded["AccessKeyId"],
+            "--secret-key",
+            credentials_decoded["SecretAccessKey"],
+        )
+    )
+    assert [e["Key"] for e in items] == ["prefix/allowed.txt"]
+    # Should NOT be able to read "denied.txt"
+    with pytest.raises(botocore.exceptions.ClientError):
+        read_file(credentials_s3, bucket_name, "denied.txt")
+    # Should be able to read prefix/allowed.txt
+    assert read_file(credentials_s3, bucket_name, "prefix/allowed.txt") == "allowed"
+
+
+class GetOutputError(Exception):
+    pass
+
+
 def get_output(*args, input=None):
     runner = CliRunner(mix_stderr=False)
     with runner.isolated_filesystem():
         result = runner.invoke(cli, args, catch_exceptions=False, input=input)
-    assert result.exit_code == 0, result.stderr
-    print(result.stderr)
+    if result.exit_code != 0:
+        raise GetOutputError(result.stderr)
     return result.stdout
 
 
