@@ -213,22 +213,26 @@ Add `--csv` or `--tsv` to get back CSV or TSV data.
 Shows a list of all buckets in your AWS account.
 
     % s3-credentials list-buckets
-    {
+    [
+      {
         "Name": "aws-cloudtrail-logs-462092780466-f2c900d3",
         "CreationDate": "2021-03-25 22:19:54+00:00"
-    }
-    {
+      },
+      {
         "Name": "simonw-test-bucket-for-s3-credentials",
         "CreationDate": "2021-11-03 21:46:12+00:00"
-    }
+      }
+    ]
 
 With no extra arguments this will show all available buckets - you can also add one or more explicit bucket names to see just those buckets:
 
     % s3-credentials list-buckets simonw-test-bucket-for-s3-credentials
-    {
+    [
+      {
         "Name": "simonw-test-bucket-for-s3-credentials",
         "CreationDate": "2021-11-03 21:46:12+00:00"
-    }
+      }
+    ]
 
 This accepts the same `--nl`, `--csv` and `--tsv` options as `list-users`.
 
