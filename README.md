@@ -298,6 +298,31 @@ A bucket with `public_access_block` might look like this:
 }
 ```
 
+### list-bucket
+
+To list the contents of a bucket, use `list-bucket`:
+
+```
+% s3-credentials list-bucket static.niche-museums.com
+[
+  {
+    "Key": "Griffith-Observatory.jpg",
+    "LastModified": "2020-01-05 16:51:01+00:00",
+    "ETag": "\"a4cff17d189e7eb0c4d3bf0257e56885\"",
+    "Size": 3360040,
+    "StorageClass": "STANDARD"
+  },
+  {
+    "Key": "IMG_0353.jpeg",
+    "LastModified": "2019-10-25 02:50:49+00:00",
+    "ETag": "\"d45bab0b65c0e4b03b2ac0359c7267e3\"",
+    "Size": 2581023,
+    "StorageClass": "STANDARD"
+  }
+]
+```
+This accepts the same `--nl`, `--csv` and `--tsv` options as `list-users`.
+
 ### list-user-policies
 
 To see a list of inline policies belonging to users:
