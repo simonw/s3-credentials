@@ -32,7 +32,7 @@ The `s3-credentials create` command is the core feature of this tool. Pass it on
 These credentials can be **temporary** or **permanent**.
 
 - Temporary credentials can last for between 15 minutes and 12 hours. They are created using [STS.AssumeRole()](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).
-- Permanent credentials never expire. They are created by first creating a dedicated AWS user, then assgning a policy to that user and creating and returning an access key for it.
+- Permanent credentials never expire. They are created by first creating a dedicated AWS user, then assigning a policy to that user and creating and returning an access key for it.
 
 Make sure to record the `SecretAccessKey` because it will only be displayed once and cannot be recreated later on.
 
