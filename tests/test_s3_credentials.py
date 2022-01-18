@@ -737,7 +737,56 @@ def test_policy(options, expected):
     assert json.loads(result.output) == json.loads(expected)
 
 
-def test_list_bucket(stub_s3):
+@pytest.mark.parametrize(
+    "options,expected",
+    (
+        (
+            [],
+            (
+                "[\n"
+                "  {\n"
+                '    "Key": "yolo-causeway-1.jpg",\n'
+                '    "LastModified": "2019-12-26 17:00:22+00:00",\n'
+                '    "ETag": "\\"87abea888b22089cabe93a0e17cf34a4\\"",\n'
+                '    "Size": 5923104,\n'
+                '    "StorageClass": "STANDARD"\n'
+                "  },\n"
+                "  {\n"
+                '    "Key": "yolo-causeway-2.jpg",\n'
+                '    "LastModified": "2019-12-26 17:00:22+00:00",\n'
+                '    "ETag": "\\"87abea888b22089cabe93a0e17cf34a4\\"",\n'
+                '    "Size": 5923104,\n'
+                '    "StorageClass": "STANDARD"\n'
+                "  }\n"
+                "]\n"
+            ),
+        ),
+        (
+            ["--nl"],
+            (
+                '{"Key": "yolo-causeway-1.jpg", "LastModified": "2019-12-26 17:00:22+00:00", "ETag": "\\"87abea888b22089cabe93a0e17cf34a4\\"", "Size": 5923104, "StorageClass": "STANDARD"}\n'
+                '{"Key": "yolo-causeway-2.jpg", "LastModified": "2019-12-26 17:00:22+00:00", "ETag": "\\"87abea888b22089cabe93a0e17cf34a4\\"", "Size": 5923104, "StorageClass": "STANDARD"}\n'
+            ),
+        ),
+        (
+            ["--tsv"],
+            (
+                "Key\tLastModified\tETag\tSize\tStorageClass\n"
+                'yolo-causeway-1.jpg\t2019-12-26 17:00:22+00:00\t"""87abea888b22089cabe93a0e17cf34a4"""\t5923104\tSTANDARD\n'
+                'yolo-causeway-2.jpg\t2019-12-26 17:00:22+00:00\t"""87abea888b22089cabe93a0e17cf34a4"""\t5923104\tSTANDARD\n'
+            ),
+        ),
+        (
+            ["--csv"],
+            (
+                "Key,LastModified,ETag,Size,StorageClass\n"
+                'yolo-causeway-1.jpg,2019-12-26 17:00:22+00:00,"""87abea888b22089cabe93a0e17cf34a4""",5923104,STANDARD\n'
+                'yolo-causeway-2.jpg,2019-12-26 17:00:22+00:00,"""87abea888b22089cabe93a0e17cf34a4""",5923104,STANDARD\n'
+            ),
+        ),
+    ),
+)
+def test_list_bucket(stub_s3, options, expected):
     stub_s3.add_response(
         "list_objects_v2",
         {
@@ -748,20 +797,19 @@ def test_list_bucket(stub_s3):
                     "ETag": '"87abea888b22089cabe93a0e17cf34a4"',
                     "Size": 5923104,
                     "StorageClass": "STANDARD",
-                }
+                },
+                {
+                    "Key": "yolo-causeway-2.jpg",
+                    "LastModified": "2019-12-26 17:00:22+00:00",
+                    "ETag": '"87abea888b22089cabe93a0e17cf34a4"',
+                    "Size": 5923104,
+                    "StorageClass": "STANDARD",
+                },
             ]
         },
     )
     runner = CliRunner()
     with runner.isolated_filesystem():
-        result = runner.invoke(cli, ["list-bucket", "test-bucket"])
+        result = runner.invoke(cli, ["list-bucket", "test-bucket"] + options)
         assert result.exit_code == 0
-        assert json.loads(result.output) == [
-            {
-                "Key": "yolo-causeway-1.jpg",
-                "LastModified": "2019-12-26 17:00:22+00:00",
-                "ETag": '"87abea888b22089cabe93a0e17cf34a4"',
-                "Size": 5923104,
-                "StorageClass": "STANDARD",
-            }
-        ]
+        assert result.output == expected

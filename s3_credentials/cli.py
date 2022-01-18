@@ -3,6 +3,7 @@ import boto3
 import botocore
 import click
 import configparser
+from csv import DictWriter
 import io
 import itertools
 import json
@@ -55,6 +56,18 @@ def common_boto3_options(fn):
                 type=click.File("r"),
                 help="Path to JSON/INI file containing credentials",
             ),
+        )
+    ):
+        fn = decorator(fn)
+    return fn
+
+
+def common_output_options(fn):
+    for decorator in reversed(
+        (
+            click.option("--nl", help="Output newline-delimited JSON", is_flag=True),
+            click.option("--csv", help="Output CSV", is_flag=True),
+            click.option("--tsv", help="Output TSV", is_flag=True),
         )
     ):
         fn = decorator(fn)
@@ -681,8 +694,9 @@ def ensure_s3_role_exists(iam, sts):
 @cli.command()
 @click.argument("bucket")
 @click.option("--prefix", help="List keys starting with this prefix")
+@common_output_options
 @common_boto3_options
-def list_bucket(bucket, prefix, **boto_options):
+def list_bucket(bucket, prefix, nl, csv, tsv, **boto_options):
     "List content of bucket"
     s3 = make_client("s3", **boto_options)
     paginator = s3.get_paginator("list_objects_v2")
@@ -698,8 +712,7 @@ def list_bucket(bucket, prefix, **boto_options):
         except botocore.exceptions.ClientError as e:
             raise click.ClickException(e)
 
-    for line in stream_indented_json(iterate()):
-        click.echo(line)
+    output(iterate(), nl, csv, tsv)
 
 
 @cli.command()
@@ -764,6 +777,25 @@ def get_object(bucket, key, output, **boto_options):
     else:
         fp = click.open_file(output, "wb")
     s3.download_fileobj(bucket, key, fp)
+
+
+def output(iterator, nl, csv, tsv):
+    if nl:
+        for item in iterator:
+            click.echo(json.dumps(item, default=repr))
+    elif csv or tsv:
+        first = next(iterator, None)
+        if first is None:
+            return
+        headers = first.keys()
+        writer = DictWriter(
+            sys.stdout, headers, dialect="excel-tab" if tsv else "excel"
+        )
+        writer.writeheader()
+        writer.writerows(itertools.chain([first], iterator))
+    else:
+        for line in stream_indented_json(iterator):
+            click.echo(line)
 
 
 def stream_indented_json(iterator, indent=2):
