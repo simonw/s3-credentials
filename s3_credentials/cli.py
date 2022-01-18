@@ -480,25 +480,35 @@ def whoami(**boto_options):
 
 
 @cli.command()
-@click.option("--array", help="Output a valid JSON array", is_flag=True)
-@click.option("--nl", help="Output newline-delimited JSON", is_flag=True)
+@common_output_options
 @common_boto3_options
-def list_users(array, nl, **boto_options):
+def list_users(nl, csv, tsv, **boto_options):
     "List all users"
     iam = make_client("iam", **boto_options)
     paginator = iam.get_paginator("list_users")
     gathered = []
-    for response in paginator.paginate():
-        for user in response["Users"]:
-            if array:
-                gathered.append(user)
-            else:
-                if nl:
-                    click.echo(json.dumps(user, default=str))
-                else:
-                    click.echo(json.dumps(user, indent=4, default=str))
-    if gathered:
-        click.echo(json.dumps(gathered, indent=4, default=str))
+
+    def iterate():
+        for response in paginator.paginate():
+            for user in response["Users"]:
+                yield user
+
+    output(
+        iterate(),
+        (
+            "UserName",
+            "UserId",
+            "Arn",
+            "Path",
+            "CreateDate",
+            "PasswordLastUsed",
+            "PermissionsBoundary",
+            "Tags",
+        ),
+        nl,
+        csv,
+        tsv,
+    )
 
 
 @cli.command()
@@ -531,52 +541,50 @@ def list_user_policies(usernames, **boto_options):
 @cli.command()
 @click.argument("buckets", nargs=-1)
 @click.option("--details", help="Include extra bucket details (slower)", is_flag=True)
-@click.option("--array", help="Output a valid JSON array", is_flag=True)
-@click.option("--nl", help="Output newline-delimited JSON", is_flag=True)
+@common_output_options
 @common_boto3_options
-def list_buckets(buckets, details, array, nl, **boto_options):
+def list_buckets(buckets, details, nl, csv, tsv, **boto_options):
     "List buckets - defaults to all, or pass one or more bucket names"
     s3 = make_client("s3", **boto_options)
-    gathered = []
-    for bucket in s3.list_buckets()["Buckets"]:
-        if buckets and (bucket["Name"] not in buckets):
-            continue
-        if details:
-            bucket_acl = dict(
-                (key, value)
-                for key, value in s3.get_bucket_acl(
-                    Bucket=bucket["Name"],
-                ).items()
-                if key != "ResponseMetadata"
-            )
-            try:
-                pab = s3.get_public_access_block(
-                    Bucket=bucket["Name"],
-                )["PublicAccessBlockConfiguration"]
-            except s3.exceptions.ClientError:
-                pab = None
-            try:
-                bucket_website = dict(
+
+    headers = ["Name", "CreationDate"]
+    if details:
+        headers += ["bucket_acl", "public_access_block", "bucket_website"]
+
+    def iterator():
+        for bucket in s3.list_buckets()["Buckets"]:
+            if buckets and (bucket["Name"] not in buckets):
+                continue
+            if details:
+                bucket_acl = dict(
                     (key, value)
-                    for key, value in s3.get_bucket_website(
+                    for key, value in s3.get_bucket_acl(
                         Bucket=bucket["Name"],
                     ).items()
                     if key != "ResponseMetadata"
                 )
-            except s3.exceptions.ClientError:
-                bucket_website = None
-            bucket["bucket_acl"] = bucket_acl
-            bucket["public_access_block"] = pab
-            bucket["bucket_website"] = bucket_website
-        if array:
-            gathered.append(bucket)
-        else:
-            if nl:
-                click.echo(json.dumps(bucket, default=str))
-            else:
-                click.echo(json.dumps(bucket, indent=4, default=str))
-    if gathered:
-        click.echo(json.dumps(gathered, indent=4, default=str))
+                try:
+                    pab = s3.get_public_access_block(
+                        Bucket=bucket["Name"],
+                    )["PublicAccessBlockConfiguration"]
+                except s3.exceptions.ClientError:
+                    pab = None
+                try:
+                    bucket_website = dict(
+                        (key, value)
+                        for key, value in s3.get_bucket_website(
+                            Bucket=bucket["Name"],
+                        ).items()
+                        if key != "ResponseMetadata"
+                    )
+                except s3.exceptions.ClientError:
+                    bucket_website = None
+                bucket["bucket_acl"] = bucket_acl
+                bucket["public_access_block"] = pab
+                bucket["bucket_website"] = bucket_website
+            yield bucket
+
+    output(iterator(), headers, nl, csv, tsv)
 
 
 @cli.command()
@@ -712,7 +720,13 @@ def list_bucket(bucket, prefix, nl, csv, tsv, **boto_options):
         except botocore.exceptions.ClientError as e:
             raise click.ClickException(e)
 
-    output(iterate(), nl, csv, tsv)
+    output(
+        iterate(),
+        ("Key", "LastModified", "ETag", "Size", "StorageClass", "Owner"),
+        nl,
+        csv,
+        tsv,
+    )
 
 
 @cli.command()
@@ -779,20 +793,16 @@ def get_object(bucket, key, output, **boto_options):
     s3.download_fileobj(bucket, key, fp)
 
 
-def output(iterator, nl, csv, tsv):
+def output(iterator, headers, nl, csv, tsv):
     if nl:
         for item in iterator:
-            click.echo(json.dumps(item, default=repr))
+            click.echo(json.dumps(item, default=str))
     elif csv or tsv:
-        first = next(iterator, None)
-        if first is None:
-            return
-        headers = first.keys()
         writer = DictWriter(
             sys.stdout, headers, dialect="excel-tab" if tsv else "excel"
         )
         writer.writeheader()
-        writer.writerows(itertools.chain([first], iterator))
+        writer.writerows(iterator)
     else:
         for line in stream_indented_json(iterator):
             click.echo(line)
@@ -811,7 +821,7 @@ def stream_indented_json(iterator, indent=2):
         line = "{first}{serialized}{separator}{last}".format(
             first="[\n" if first else "",
             serialized=textwrap.indent(
-                json.dumps(data, indent=indent, default=repr), " " * indent
+                json.dumps(data, indent=indent, default=str), " " * indent
             ),
             separator="," if not is_last else "",
             last="\n]" if is_last else "",

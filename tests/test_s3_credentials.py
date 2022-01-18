@@ -61,45 +61,43 @@ def test_whoami(mocker, stub_sts):
     (
         (
             "",
-            "{\n"
+            "[\n"
+            "  {\n"
             '    "Path": "/",\n'
             '    "UserName": "NameA",\n'
             '    "UserId": "AID000000000000000001",\n'
             '    "Arn": "arn:aws:iam::000000000000:user/NameB",\n'
             '    "CreateDate": "2020-01-01 00:00:00+00:00"\n'
-            "}\n"
-            "{\n"
+            "  },\n"
+            "  {\n"
             '    "Path": "/",\n'
             '    "UserName": "NameA",\n'
             '    "UserId": "AID000000000000000000",\n'
             '    "Arn": "arn:aws:iam::000000000000:user/NameB",\n'
             '    "CreateDate": "2020-01-01 00:00:00+00:00"\n'
-            "}\n",
-        ),
-        (
-            "--array",
-            "[\n"
-            "    {\n"
-            '        "Path": "/",\n'
-            '        "UserName": "NameA",\n'
-            '        "UserId": "AID000000000000000001",\n'
-            '        "Arn": "arn:aws:iam::000000000000:user/NameB",\n'
-            '        "CreateDate": "2020-01-01 00:00:00+00:00"\n'
-            "    },\n"
-            "    {\n"
-            '        "Path": "/",\n'
-            '        "UserName": "NameA",\n'
-            '        "UserId": "AID000000000000000000",\n'
-            '        "Arn": "arn:aws:iam::000000000000:user/NameB",\n'
-            '        "CreateDate": "2020-01-01 00:00:00+00:00"\n'
-            "    }\n"
-            "]\n"
-            "",
+            "  }\n"
+            "]\n",
         ),
         (
             "--nl",
             '{"Path": "/", "UserName": "NameA", "UserId": "AID000000000000000001", "Arn": "arn:aws:iam::000000000000:user/NameB", "CreateDate": "2020-01-01 00:00:00+00:00"}\n'
             '{"Path": "/", "UserName": "NameA", "UserId": "AID000000000000000000", "Arn": "arn:aws:iam::000000000000:user/NameB", "CreateDate": "2020-01-01 00:00:00+00:00"}\n',
+        ),
+        (
+            "--csv",
+            (
+                "UserName,UserId,Arn,Path,CreateDate,PasswordLastUsed,PermissionsBoundary,Tags\n"
+                "NameA,AID000000000000000001,arn:aws:iam::000000000000:user/NameB,/,2020-01-01 00:00:00+00:00,,,\n"
+                "NameA,AID000000000000000000,arn:aws:iam::000000000000:user/NameB,/,2020-01-01 00:00:00+00:00,,,\n"
+            ),
+        ),
+        (
+            "--tsv",
+            (
+                "UserName\tUserId\tArn\tPath\tCreateDate\tPasswordLastUsed\tPermissionsBoundary\tTags\n"
+                "NameA\tAID000000000000000001\tarn:aws:iam::000000000000:user/NameB\t/\t2020-01-01 00:00:00+00:00\t\t\t\n"
+                "NameA\tAID000000000000000000\tarn:aws:iam::000000000000:user/NameB\t/\t2020-01-01 00:00:00+00:00\t\t\t\n"
+            ),
         ),
     ),
 )
@@ -138,27 +136,18 @@ def test_list_users(option, expected, stub_iam):
     (
         (
             [],
-            "{\n"
-            '    "Name": "bucket-one",\n'
-            '    "CreationDate": "2020-01-01 00:00:00+00:00"\n'
-            "}\n"
-            "{\n"
-            '    "Name": "bucket-two",\n'
-            '    "CreationDate": "2020-02-01 00:00:00+00:00"\n'
-            "}\n",
-        ),
-        (
-            ["--array"],
-            "[\n"
-            "    {\n"
-            '        "Name": "bucket-one",\n'
-            '        "CreationDate": "2020-01-01 00:00:00+00:00"\n'
-            "    },\n"
-            "    {\n"
-            '        "Name": "bucket-two",\n'
-            '        "CreationDate": "2020-02-01 00:00:00+00:00"\n'
-            "    }"
-            "\n]\n",
+            (
+                "[\n"
+                "  {\n"
+                '    "Name": "bucket-one",\n'
+                '    "CreationDate": "2020-01-01 00:00:00+00:00"\n'
+                "  },\n"
+                "  {\n"
+                '    "Name": "bucket-two",\n'
+                '    "CreationDate": "2020-02-01 00:00:00+00:00"\n'
+                "  }\n"
+                "]\n"
+            ),
         ),
         (
             ["--nl"],
@@ -249,40 +238,42 @@ def test_list_buckets_details(stub_s3):
         result = runner.invoke(cli, ["list-buckets", "--details"])
         assert result.exit_code == 0
         assert result.output == (
-            "{\n"
+            "[\n"
+            "  {\n"
             '    "Name": "bucket-one",\n'
             '    "CreationDate": "2020-01-01 00:00:00+00:00",\n'
             '    "bucket_acl": {\n'
-            '        "Owner": {\n'
+            '      "Owner": {\n'
+            '        "DisplayName": "swillison",\n'
+            '        "ID": "36b2eeee501c5952a8ac119f9e5212277a4c01eccfa8d6a9d670bba1e2d5f441"\n'
+            "      },\n"
+            '      "Grants": [\n'
+            "        {\n"
+            '          "Grantee": {\n'
             '            "DisplayName": "swillison",\n'
-            '            "ID": "36b2eeee501c5952a8ac119f9e5212277a4c01eccfa8d6a9d670bba1e2d5f441"\n'
-            "        },\n"
-            '        "Grants": [\n'
-            "            {\n"
-            '                "Grantee": {\n'
-            '                    "DisplayName": "swillison",\n'
-            '                    "ID": "36b2eeee501c5952a8ac119f9e5212277a4c01eccfa8d6a9d670bba1e2d5f441",\n'
-            '                    "Type": "CanonicalUser"\n'
-            "                },\n"
-            '                "Permission": "FULL_CONTROL"\n'
-            "            }\n"
-            "        ]\n"
+            '            "ID": "36b2eeee501c5952a8ac119f9e5212277a4c01eccfa8d6a9d670bba1e2d5f441",\n'
+            '            "Type": "CanonicalUser"\n'
+            "          },\n"
+            '          "Permission": "FULL_CONTROL"\n'
+            "        }\n"
+            "      ]\n"
             "    },\n"
             '    "public_access_block": {\n'
-            '        "BlockPublicAcls": true,\n'
-            '        "IgnorePublicAcls": true,\n'
-            '        "BlockPublicPolicy": true,\n'
-            '        "RestrictPublicBuckets": true\n'
+            '      "BlockPublicAcls": true,\n'
+            '      "IgnorePublicAcls": true,\n'
+            '      "BlockPublicPolicy": true,\n'
+            '      "RestrictPublicBuckets": true\n'
             "    },\n"
             '    "bucket_website": {\n'
-            '        "IndexDocument": {\n'
-            '            "Suffix": "index.html"\n'
-            "        },\n"
-            '        "ErrorDocument": {\n'
-            '            "Key": "error.html"\n'
-            "        }\n"
+            '      "IndexDocument": {\n'
+            '        "Suffix": "index.html"\n'
+            "      },\n"
+            '      "ErrorDocument": {\n'
+            '        "Key": "error.html"\n'
+            "      }\n"
             "    }\n"
-            "}\n"
+            "  }\n"
+            "]\n"
         )
 
 
@@ -771,17 +762,17 @@ def test_policy(options, expected):
         (
             ["--tsv"],
             (
-                "Key\tLastModified\tETag\tSize\tStorageClass\n"
-                'yolo-causeway-1.jpg\t2019-12-26 17:00:22+00:00\t"""87abea888b22089cabe93a0e17cf34a4"""\t5923104\tSTANDARD\n'
-                'yolo-causeway-2.jpg\t2019-12-26 17:00:22+00:00\t"""87abea888b22089cabe93a0e17cf34a4"""\t5923104\tSTANDARD\n'
+                "Key\tLastModified\tETag\tSize\tStorageClass\tOwner\n"
+                'yolo-causeway-1.jpg\t2019-12-26 17:00:22+00:00\t"""87abea888b22089cabe93a0e17cf34a4"""\t5923104\tSTANDARD\t\n'
+                'yolo-causeway-2.jpg\t2019-12-26 17:00:22+00:00\t"""87abea888b22089cabe93a0e17cf34a4"""\t5923104\tSTANDARD\t\n'
             ),
         ),
         (
             ["--csv"],
             (
-                "Key,LastModified,ETag,Size,StorageClass\n"
-                'yolo-causeway-1.jpg,2019-12-26 17:00:22+00:00,"""87abea888b22089cabe93a0e17cf34a4""",5923104,STANDARD\n'
-                'yolo-causeway-2.jpg,2019-12-26 17:00:22+00:00,"""87abea888b22089cabe93a0e17cf34a4""",5923104,STANDARD\n'
+                "Key,LastModified,ETag,Size,StorageClass,Owner\n"
+                'yolo-causeway-1.jpg,2019-12-26 17:00:22+00:00,"""87abea888b22089cabe93a0e17cf34a4""",5923104,STANDARD,\n'
+                'yolo-causeway-2.jpg,2019-12-26 17:00:22+00:00,"""87abea888b22089cabe93a0e17cf34a4""",5923104,STANDARD,\n'
             ),
         ),
     ),

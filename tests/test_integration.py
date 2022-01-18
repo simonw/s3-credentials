@@ -232,7 +232,7 @@ def read_file(s3, bucket, path):
 
 def cleanup_any_resources():
     # Delete any users beginning s3-credentials-tests.
-    users = json.loads(get_output("list-users", "--array"))
+    users = json.loads(get_output("list-users"))
     users_to_delete = [
         user["UserName"]
         for user in users
@@ -243,7 +243,7 @@ def cleanup_any_resources():
         get_output("delete-user", *users_to_delete)
     s3 = boto3.client("s3")
     # Delete any buckets beginning s3-credentials-tests.
-    buckets = json.loads(get_output("list-buckets", "--array"))
+    buckets = json.loads(get_output("list-buckets"))
     buckets_to_delete = [
         bucket["Name"]
         for bucket in buckets

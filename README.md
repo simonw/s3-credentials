@@ -202,11 +202,11 @@ To see a list of all users that exist for your AWS account:
 
     s3-credentials list-users
 
-This will return pretty-printed JSON objects by default.
+This will a pretty-printed array of JSON objects by default.
 
 Add `--nl` to collapse these to single lines as valid newline-delimited JSON.
 
-Add `--array` to output a valid JSON array of objects instead.
+Add `--csv` or `--tsv` to get back CSV or TSV data.
 
 ### list-buckets
 
@@ -230,7 +230,7 @@ With no extra arguments this will show all available buckets - you can also add 
         "CreationDate": "2021-11-03 21:46:12+00:00"
     }
 
-This accepts the same `--nl` and `--array` options as `list-users`.
+This accepts the same `--nl`, `--csv` and `--tsv` options as `list-users`.
 
 Add `--details` to include details of the bucket ACL, website configuration and public access block settings. This is useful for running a security audit of your buckets.
 
