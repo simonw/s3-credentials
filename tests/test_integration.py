@@ -279,6 +279,52 @@ def test_prefix_read_only():
     assert read_file(credentials_s3, bucket_name, "prefix/allowed.txt") == "allowed"
 
 
+def test_prefix_write_only():
+    bucket_name = "s3-credentials-tests.pre-wo.{}".format(secrets.token_hex(4))
+    s3 = boto3.client("s3")
+    assert not bucket_exists(s3, bucket_name)
+    credentials_decoded = json.loads(
+        get_output("create", bucket_name, "-c", "--write-only", "--prefix", "prefix/")
+    )
+    time.sleep(10)
+    credentials_s3 = boto3.session.Session(
+        aws_access_key_id=credentials_decoded["AccessKeyId"],
+        aws_secret_access_key=credentials_decoded["SecretAccessKey"],
+    ).client("s3")
+    # Should not be able to write objects to root
+    with pytest.raises(botocore.exceptions.ClientError):
+        credentials_s3.put_object(
+            Body="denied".encode("utf-8"),
+            Bucket=bucket_name,
+            Key="denied.txt",
+        )
+    # Should be able to write them to prefix/
+    credentials_s3.put_object(
+        Body="allowed".encode("utf-8"),
+        Bucket=bucket_name,
+        Key="prefix/allowed2.txt",
+    )
+    # Use root permissions to verfy the write
+    s3 = boto3.client("s3")
+    assert read_file(s3, bucket_name, "prefix/allowed2.txt") == "allowed"
+    # Should not be able to run list-bucket, even against the prefix
+    for options in ([], ["--prefix", "prefix/"]):
+        with pytest.raises(GetOutputError):
+            args = [
+                "list-bucket",
+                bucket_name,
+                "--access-key",
+                credentials_decoded["AccessKeyId"],
+                "--secret-key",
+                credentials_decoded["SecretAccessKey"],
+            ] + options
+            get_output(*args)
+    # Should not be able to get-object
+    for key in ("denied.txt", "prefix/allowed2.txt"):
+        with pytest.raises(botocore.exceptions.ClientError):
+            read_file(credentials_s3, bucket_name, key)
+
+
 class GetOutputError(Exception):
     pass
 
