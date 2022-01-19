@@ -486,7 +486,6 @@ def list_users(nl, csv, tsv, **boto_options):
     "List all users"
     iam = make_client("iam", **boto_options)
     paginator = iam.get_paginator("list_users")
-    gathered = []
 
     def iterate():
         for response in paginator.paginate():
@@ -509,6 +508,82 @@ def list_users(nl, csv, tsv, **boto_options):
         csv,
         tsv,
     )
+
+
+@cli.command()
+@click.argument("role_names", nargs=-1)
+@click.option("--details", help="Include attached policies (slower)", is_flag=True)
+@common_output_options
+@common_boto3_options
+def list_roles(role_names, details, nl, csv, tsv, **boto_options):
+    "List all roles"
+    iam = make_client("iam", **boto_options)
+    paginator = iam.get_paginator("list_roles")
+
+    headers = (
+        "Path",
+        "RoleName",
+        "RoleId",
+        "Arn",
+        "CreateDate",
+        "AssumeRolePolicyDocument",
+        "Description",
+        "MaxSessionDuration",
+        "PermissionsBoundary",
+        "Tags",
+        "RoleLastUsed",
+    )
+
+    if details:
+        headers += ("inline_policies", "attached_policies")
+
+    def iterate():
+        for response in paginator.paginate():
+            for role in response["Roles"]:
+                if role_names and role["RoleName"] not in role_names:
+                    continue
+                if details:
+                    role_name = role["RoleName"]
+                    role["inline_policies"] = []
+                    # Get inline policy names, then policy for each one
+                    role_policies_response = iam.list_role_policies(
+                        RoleName=role_name,
+                    )
+                    # TODO: Warn on IsTruncated, maybe even paginate
+                    for policy_name in role_policies_response["PolicyNames"]:
+                        role_policy_response = iam.get_role_policy(
+                            RoleName=role_name,
+                            PolicyName=policy_name,
+                        )
+                        role_policy_response.pop("ResponseMetadata", None)
+                        role["inline_policies"].append(role_policy_response)
+
+                    # Get attached managed policies
+                    role["attached_policies"] = []
+                    attached_policies_response = iam.list_attached_role_policies(
+                        RoleName=role_name,
+                    )
+                    # TODO: Warn on IsTruncated, maybe even paginate
+                    for attached in attached_policies_response["AttachedPolicies"]:
+                        policy_arn = attached["PolicyArn"]
+                        attached_policy_response = iam.get_policy(
+                            PolicyArn=policy_arn,
+                        )
+                        policy_details = attached_policy_response["Policy"]
+                        # Also need to fetch the policy JSON
+                        version_id = policy_details["DefaultVersionId"]
+                        policy_version_response = iam.get_policy_version(
+                            PolicyArn=policy_arn,
+                            VersionId=version_id,
+                        )
+                        policy_details["PolicyVersion"] = policy_version_response[
+                            "PolicyVersion"
+                        ]
+                        role["attached_policies"].append(policy_details)
+
+                yield role
+
+    output(iterate(), headers, nl, csv, tsv)
 
 
 @cli.command()
