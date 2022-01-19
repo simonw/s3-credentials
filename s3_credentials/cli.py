@@ -485,16 +485,8 @@ def whoami(**boto_options):
 def list_users(nl, csv, tsv, **boto_options):
     "List all users"
     iam = make_client("iam", **boto_options)
-    paginator = iam.get_paginator("list_users")
-    gathered = []
-
-    def iterate():
-        for response in paginator.paginate():
-            for user in response["Users"]:
-                yield user
-
     output(
-        iterate(),
+        paginate(iam, "list_users", "Users"),
         (
             "UserName",
             "UserId",
@@ -518,24 +510,19 @@ def list_user_policies(usernames, **boto_options):
     "List inline policies for specified user"
     iam = make_client("iam", **boto_options)
     if not usernames:
-        usernames = []
-        paginator = iam.get_paginator("list_users")
-        for response in paginator.paginate():
-            for user in response["Users"]:
-                usernames.append(user["UserName"])
-
-    paginator = iam.get_paginator("list_user_policies")
+        usernames = [user["UserName"] for user in paginate(iam, "list_users", "Users")]
     for username in usernames:
         click.echo("User: {}".format(username))
-        for response in paginator.paginate(UserName=username):
-            for policy_name in response["PolicyNames"]:
-                click.echo("PolicyName: {}".format(policy_name))
-                policy_response = iam.get_user_policy(
-                    UserName=username, PolicyName=policy_name
-                )
-                click.echo(
-                    json.dumps(policy_response["PolicyDocument"], indent=4, default=str)
-                )
+        for policy_name in paginate(
+            iam, "list_user_policies", "PolicyNames", UserName=username
+        ):
+            click.echo("PolicyName: {}".format(policy_name))
+            policy_response = iam.get_user_policy(
+                UserName=username, PolicyName=policy_name
+            )
+            click.echo(
+                json.dumps(policy_response["PolicyDocument"], indent=4, default=str)
+            )
 
 
 @cli.command()
@@ -593,27 +580,26 @@ def list_buckets(buckets, details, nl, csv, tsv, **boto_options):
 def delete_user(usernames, **boto_options):
     "Delete specified users, their access keys and their inline policies"
     iam = make_client("iam", **boto_options)
-    policy_paginator = iam.get_paginator("list_user_policies")
-    access_key_paginator = iam.get_paginator("list_access_keys")
     for username in usernames:
         click.echo("User: {}".format(username))
         # Fetch and delete their policies
-        policy_names = []
-        for response in policy_paginator.paginate(UserName=username):
-            for policy_name in response["PolicyNames"]:
-                policy_names.append(policy_name)
-        for policy_name in policy_names:
+        policy_names_to_delete = list(
+            paginate(iam, "list_user_policies", "PolicyNames", UserName=username)
+        )
+        for policy_name in policy_names_to_delete:
             iam.delete_user_policy(
                 UserName=username,
                 PolicyName=policy_name,
             )
             click.echo("  Deleted policy: {}".format(policy_name))
         # Fetch and delete their access keys
-        access_key_ids = []
-        for response in access_key_paginator.paginate(UserName=username):
-            for access_key in response["AccessKeyMetadata"]:
-                access_key_ids.append(access_key["AccessKeyId"])
-        for access_key_id in access_key_ids:
+        access_key_ids_to_delete = [
+            access_key["AccessKeyId"]
+            for access_key in paginate(
+                iam, "list_access_keys", "AccessKeyMetadata", UserName=username
+            )
+        ]
+        for access_key_id in access_key_ids_to_delete:
             iam.delete_access_key(
                 UserName=username,
                 AccessKeyId=access_key_id,
@@ -707,26 +693,20 @@ def ensure_s3_role_exists(iam, sts):
 def list_bucket(bucket, prefix, nl, csv, tsv, **boto_options):
     "List content of bucket"
     s3 = make_client("s3", **boto_options)
-    paginator = s3.get_paginator("list_objects_v2")
     kwargs = {"Bucket": bucket}
     if prefix:
         kwargs["Prefix"] = prefix
 
-    def iterate():
-        try:
-            for page in paginator.paginate(**kwargs):
-                for row in page["Contents"]:
-                    yield row
-        except botocore.exceptions.ClientError as e:
-            raise click.ClickException(e)
-
-    output(
-        iterate(),
-        ("Key", "LastModified", "ETag", "Size", "StorageClass", "Owner"),
-        nl,
-        csv,
-        tsv,
-    )
+    try:
+        output(
+            paginate(s3, "list_objects_v2", "Contents", **kwargs),
+            ("Key", "LastModified", "ETag", "Size", "StorageClass", "Owner"),
+            nl,
+            csv,
+            tsv,
+        )
+    except botocore.exceptions.ClientError as e:
+        raise click.ClickException(e)
 
 
 @cli.command()
@@ -831,3 +811,9 @@ def stream_indented_json(iterator, indent=2):
     if first:
         # We didn't output anything, so yield the empty list
         yield "[]"
+
+
+def paginate(service, method, list_key, **kwargs):
+    paginator = service.get_paginator(method)
+    for response in paginator.paginate(**kwargs):
+        yield from response[list_key]
