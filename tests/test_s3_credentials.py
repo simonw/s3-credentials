@@ -805,3 +805,101 @@ def test_list_bucket(stub_s3, options, expected):
         result = runner.invoke(cli, ["list-bucket", "test-bucket"] + options)
         assert result.exit_code == 0
         assert result.output == expected
+
+
+@pytest.fixture
+def stub_iam_for_list_roles(stub_iam):
+    stub_iam.add_response(
+        "list_roles",
+        {
+            "Roles": [
+                {
+                    "RoleName": "role-one",
+                    "Path": "/",
+                    "Arn": "arn:aws:iam::462092780466:role/role-one",
+                    "RoleId": "36b2eeee501c5952a8ac119f9e521",
+                    "CreateDate": "2020-01-01 00:00:00+00:00",
+                }
+            ]
+        },
+    )
+    stub_iam.add_response(
+        "list_role_policies",
+        {"PolicyNames": ["policy-one"]},
+    )
+    stub_iam.add_response(
+        "get_role_policy",
+        {
+            "RoleName": "role-one",
+            "PolicyName": "policy-one",
+            "PolicyDocument": '{"foo": "bar}',
+        },
+    )
+    stub_iam.add_response(
+        "list_attached_role_policies",
+        {"AttachedPolicies": [{"PolicyArn": "arn:123:must-be-at-least-tweny-chars"}]},
+    )
+    stub_iam.add_response(
+        "get_policy",
+        {"Policy": {"DefaultVersionId": "v1"}},
+    )
+    stub_iam.add_response(
+        "get_policy_version",
+        {"PolicyVersion": {"CreateDate": "2020-01-01 00:00:00+00:00"}},
+    )
+
+
+@pytest.mark.parametrize("details", (False, True))
+def test_list_roles_details(stub_iam_for_list_roles, details):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["list-roles"] + (["--details"] if details else []))
+        assert result.exit_code == 0
+        expected = {
+            "RoleName": "role-one",
+            "Path": "/",
+            "Arn": "arn:aws:iam::462092780466:role/role-one",
+            "RoleId": "36b2eeee501c5952a8ac119f9e521",
+            "CreateDate": "2020-01-01 00:00:00+00:00",
+            "inline_policies": [
+                {
+                    "RoleName": "role-one",
+                    "PolicyName": "policy-one",
+                    "PolicyDocument": '{"foo": "bar}',
+                }
+            ],
+            "attached_policies": [
+                {
+                    "DefaultVersionId": "v1",
+                    "PolicyVersion": {"CreateDate": "2020-01-01 00:00:00+00:00"},
+                }
+            ],
+        }
+        if not details:
+            expected.pop("inline_policies")
+            expected.pop("attached_policies")
+        assert json.loads(result.output) == [expected]
+
+
+def test_list_roles_csv(stub_iam_for_list_roles):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["list-roles", "--csv", "--details"])
+        assert result.exit_code == 0
+    assert result.output == (
+        "Path,RoleName,RoleId,Arn,CreateDate,AssumeRolePolicyDocument,Description,MaxSessionDuration,PermissionsBoundary,Tags,RoleLastUsed,inline_policies,attached_policies\n"
+        '/,role-one,36b2eeee501c5952a8ac119f9e521,arn:aws:iam::462092780466:role/role-one,2020-01-01 00:00:00+00:00,,,,,,,"[\n'
+        "  {\n"
+        '    ""RoleName"": ""role-one"",\n'
+        '    ""PolicyName"": ""policy-one"",\n'
+        '    ""PolicyDocument"": ""{\\""foo\\"": \\""bar}""\n'
+        "  }\n"
+        ']","[\n'
+        "  {\n"
+        '    ""DefaultVersionId"": ""v1"",\n'
+        '    ""PolicyVersion"": {\n'
+        '      ""CreateDate"": ""2020-01-01 00:00:00+00:00""\n'
+        "    }\n"
+        "  }\n"
+        ']"\n'
+    )

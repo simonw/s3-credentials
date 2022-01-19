@@ -372,6 +372,123 @@ You can pass any number of usernames here. If you don't specify a username the t
 
     s3-credentials list-user-policies
 
+### list-roles
+
+The `list-roles` command lists all of the roles available for the authenticated account.
+
+Add `--details` to fetch the inline and attached managed policies for each row as well - this is slower as it needs to make several additional API calls for each role.
+
+You can optionally add one or more role names to the command to display and fetch details about just those specific roles.
+
+Example usage:
+
+```
+% s3-credentials list-roles AWSServiceRoleForLightsail --details
+[
+  {
+    "Path": "/aws-service-role/lightsail.amazonaws.com/",
+    "RoleName": "AWSServiceRoleForLightsail",
+    "RoleId": "AROAWXFXAIOZG5ACQ5NZ5",
+    "Arn": "arn:aws:iam::462092780466:role/aws-service-role/lightsail.amazonaws.com/AWSServiceRoleForLightsail",
+    "CreateDate": "2021-01-15 21:41:48+00:00",
+    "AssumeRolePolicyDocument": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "Service": "lightsail.amazonaws.com"
+          },
+          "Action": "sts:AssumeRole"
+        }
+      ]
+    },
+    "MaxSessionDuration": 3600,
+    "inline_policies": [
+      {
+        "RoleName": "AWSServiceRoleForLightsail",
+        "PolicyName": "LightsailExportAccess",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "kms:Decrypt",
+                "kms:DescribeKey",
+                "kms:CreateGrant"
+              ],
+              "Resource": "arn:aws:kms:*:451833091580:key/*"
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:DescribeStacks"
+              ],
+              "Resource": "arn:aws:cloudformation:*:*:stack/*/*"
+            }
+          ]
+        }
+      }
+    ],
+    "attached_policies": [
+      {
+        "PolicyName": "LightsailExportAccess",
+        "PolicyId": "ANPAJ4LZGPQLZWMVR4WMQ",
+        "Arn": "arn:aws:iam::aws:policy/aws-service-role/LightsailExportAccess",
+        "Path": "/aws-service-role/",
+        "DefaultVersionId": "v2",
+        "AttachmentCount": 1,
+        "PermissionsBoundaryUsageCount": 0,
+        "IsAttachable": true,
+        "Description": "AWS Lightsail service linked role policy which grants permissions to export resources",
+        "CreateDate": "2018-09-28 16:35:54+00:00",
+        "UpdateDate": "2022-01-15 01:45:33+00:00",
+        "Tags": [],
+        "PolicyVersion": {
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "iam:DeleteServiceLinkedRole",
+                  "iam:GetServiceLinkedRoleDeletionStatus"
+                ],
+                "Resource": "arn:aws:iam::*:role/aws-service-role/lightsail.amazonaws.com/AWSServiceRoleForLightsail*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:CopySnapshot",
+                  "ec2:DescribeSnapshots",
+                  "ec2:CopyImage",
+                  "ec2:DescribeImages"
+                ],
+                "Resource": "*"
+              },
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "s3:GetAccountPublicAccessBlock"
+                ],
+                "Resource": "*"
+              }
+            ]
+          },
+          "VersionId": "v2",
+          "IsDefaultVersion": true,
+          "CreateDate": "2022-01-15 01:45:33+00:00"
+        }
+      }
+    ]
+  }
+]
+```
+Add `--nl` to collapse these to single lines as valid newline-delimited JSON.
+
+Add `--csv` or `--tsv` to get back CSV or TSV data.
+
 ### delete-user
 
 In trying out this tool it's possible you will create several different user accounts that you later decide to clean up.

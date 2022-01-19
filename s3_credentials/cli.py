@@ -504,6 +504,77 @@ def list_users(nl, csv, tsv, **boto_options):
 
 
 @cli.command()
+@click.argument("role_names", nargs=-1)
+@click.option("--details", help="Include attached policies (slower)", is_flag=True)
+@common_output_options
+@common_boto3_options
+def list_roles(role_names, details, nl, csv, tsv, **boto_options):
+    "List all roles"
+    iam = make_client("iam", **boto_options)
+    headers = (
+        "Path",
+        "RoleName",
+        "RoleId",
+        "Arn",
+        "CreateDate",
+        "AssumeRolePolicyDocument",
+        "Description",
+        "MaxSessionDuration",
+        "PermissionsBoundary",
+        "Tags",
+        "RoleLastUsed",
+    )
+    if details:
+        headers += ("inline_policies", "attached_policies")
+
+    def iterate():
+        for role in paginate(iam, "list_roles", "Roles"):
+            if role_names and role["RoleName"] not in role_names:
+                continue
+            if details:
+                role_name = role["RoleName"]
+                role["inline_policies"] = []
+                # Get inline policy names, then policy for each one
+                for policy_name in paginate(
+                    iam, "list_role_policies", "PolicyNames", RoleName=role_name
+                ):
+                    role_policy_response = iam.get_role_policy(
+                        RoleName=role_name,
+                        PolicyName=policy_name,
+                    )
+                    role_policy_response.pop("ResponseMetadata", None)
+                    role["inline_policies"].append(role_policy_response)
+
+                # Get attached managed policies
+                role["attached_policies"] = []
+                for attached in paginate(
+                    iam,
+                    "list_attached_role_policies",
+                    "AttachedPolicies",
+                    RoleName=role_name,
+                ):
+                    policy_arn = attached["PolicyArn"]
+                    attached_policy_response = iam.get_policy(
+                        PolicyArn=policy_arn,
+                    )
+                    policy_details = attached_policy_response["Policy"]
+                    # Also need to fetch the policy JSON
+                    version_id = policy_details["DefaultVersionId"]
+                    policy_version_response = iam.get_policy_version(
+                        PolicyArn=policy_arn,
+                        VersionId=version_id,
+                    )
+                    policy_details["PolicyVersion"] = policy_version_response[
+                        "PolicyVersion"
+                    ]
+                    role["attached_policies"].append(policy_details)
+
+            yield role
+
+    output(iterate(), headers, nl, csv, tsv)
+
+
+@cli.command()
 @click.argument("usernames", nargs=-1)
 @common_boto3_options
 def list_user_policies(usernames, **boto_options):
@@ -782,7 +853,7 @@ def output(iterator, headers, nl, csv, tsv):
             sys.stdout, headers, dialect="excel-tab" if tsv else "excel"
         )
         writer.writeheader()
-        writer.writerows(iterator)
+        writer.writerows(fix_json(row) for row in iterator)
     else:
         for line in stream_indented_json(iterator):
             click.echo(line)
@@ -817,3 +888,18 @@ def paginate(service, method, list_key, **kwargs):
     paginator = service.get_paginator(method)
     for response in paginator.paginate(**kwargs):
         yield from response[list_key]
+
+
+def fix_json(row):
+    # If a key value is list or dict, json encode it
+    return dict(
+        [
+            (
+                key,
+                json.dumps(value, indent=2, default=str)
+                if isinstance(value, (dict, list, tuple))
+                else value,
+            )
+            for key, value in row.items()
+        ]
+    )
