@@ -9,6 +9,10 @@ A tool for creating credentials for accessing S3 buckets
 
 For project background, see [s3-credentials: a tool for creating credentials for S3 buckets](https://simonwillison.net/2021/Nov/3/s3-credentials/) on my blog.
 
+Why would you need this? If you want to read and write to an S3 bucket from an automated script somewhere, you'll need an access key and secret key to authenticate your calls. This tool helps you create those with the most restrictive permissions possible.
+
+If your code is running in EC2 or Lambda you can likely solve this [using roles instead](https://aws.amazon.com/premiumsupport/knowledge-center/lambda-execution-role-s3-bucket/). This tool is mainly useful for when you are interacting with S3 from outside the boundaries of AWS itself.
+
 ## Installation
 
 Install this tool using `pip`:
@@ -32,7 +36,7 @@ The `s3-credentials create` command is the core feature of this tool. Pass it on
 These credentials can be **temporary** or **permanent**.
 
 - Temporary credentials can last for between 15 minutes and 12 hours. They are created using [STS.AssumeRole()](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).
-- Permanent credentials never expire. They are created by first creating a dedicated AWS user, then assgning a policy to that user and creating and returning an access key for it.
+- Permanent credentials never expire. They are created by first creating a dedicated AWS user, then assigning a policy to that user and creating and returning an access key for it.
 
 Make sure to record the `SecretAccessKey` because it will only be displayed once and cannot be recreated later on.
 
@@ -116,7 +120,9 @@ You can run the `create` command with the `--dry-run` option to see a summary of
 
 ### Using a custom policy
 
-The policy documents applied by this tool can be seen in [policies.py](https://github.com/simonw/s3-credentials/blob/main/s3_credentials/policies.py). If you want to use a custom policy document you can do so using the `--policy` option.
+The policy documents applied by this tool [are listed below](https://github.com/simonw/s3-credentials/blob/main/README.md#policy-documents).
+
+If you want to use a custom policy document you can do so using the `--policy` option.
 
 First, create your policy document as a JSON file that looks something like this:
 
@@ -213,22 +219,26 @@ Add `--csv` or `--tsv` to get back CSV or TSV data.
 Shows a list of all buckets in your AWS account.
 
     % s3-credentials list-buckets
-    {
+    [
+      {
         "Name": "aws-cloudtrail-logs-462092780466-f2c900d3",
         "CreationDate": "2021-03-25 22:19:54+00:00"
-    }
-    {
+      },
+      {
         "Name": "simonw-test-bucket-for-s3-credentials",
         "CreationDate": "2021-11-03 21:46:12+00:00"
-    }
+      }
+    ]
 
 With no extra arguments this will show all available buckets - you can also add one or more explicit bucket names to see just those buckets:
 
     % s3-credentials list-buckets simonw-test-bucket-for-s3-credentials
-    {
+    [
+      {
         "Name": "simonw-test-bucket-for-s3-credentials",
         "CreationDate": "2021-11-03 21:46:12+00:00"
-    }
+      }
+    ]
 
 This accepts the same `--nl`, `--csv` and `--tsv` options as `list-users`.
 
@@ -237,35 +247,37 @@ Add `--details` to include details of the bucket ACL, website configuration and 
 Using `--details` adds three additional API calls for each bucket, so it is advisable to use it with one or more explicit bucket names.
 ```
 % s3-credentials list-buckets simonw-test-public-website-bucket --details
-{
-  "Name": "simonw-test-public-website-bucket",
-  "CreationDate": "2021-11-08 22:53:30+00:00",
-  "bucket_acl": {
-    "Owner": {
-      "DisplayName": "simon",
-      "ID": "abcdeabcdeabcdeabcdeabcdeabcde0001"
+[
+  {
+    "Name": "simonw-test-public-website-bucket",
+    "CreationDate": "2021-11-08 22:53:30+00:00",
+    "bucket_acl": {
+      "Owner": {
+        "DisplayName": "simon",
+        "ID": "abcdeabcdeabcdeabcdeabcdeabcde0001"
+      },
+      "Grants": [
+        {
+          "Grantee": {
+            "DisplayName": "simon",
+            "ID": "abcdeabcdeabcdeabcdeabcdeabcde0001",
+            "Type": "CanonicalUser"
+          },
+          "Permission": "FULL_CONTROL"
+        }
+      ]
     },
-    "Grants": [
-      {
-        "Grantee": {
-          "DisplayName": "simon",
-          "ID": "abcdeabcdeabcdeabcdeabcdeabcde0001",
-          "Type": "CanonicalUser"
-        },
-        "Permission": "FULL_CONTROL"
+    "public_access_block": null,
+    "bucket_website": {
+      "IndexDocument": {
+        "Suffix": "index.html"
+      },
+      "ErrorDocument": {
+        "Key": "error.html"
       }
-    ]
-  },
-  "public_access_block": null,
-  "bucket_website": {
-    "IndexDocument": {
-      "Suffix": "index.html"
-    },
-    "ErrorDocument": {
-      "Key": "error.html"
     }
   }
-}
+]
 ```
 A bucket with `public_access_block` might look like this:
 ```json
@@ -321,7 +333,9 @@ To list the contents of a bucket, use `list-bucket`:
   }
 ]
 ```
-This accepts the same `--nl`, `--csv` and `--tsv` options as `list-users`.
+You can use the `--prefix myprefix/` option to list only keys that start with a specific prefix.
+
+The commmand accepts the same `--nl`, `--csv` and `--tsv` options as `list-users`.
 
 ### list-user-policies
 

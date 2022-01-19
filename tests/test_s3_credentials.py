@@ -555,6 +555,7 @@ def test_list_user_policies(mocker):
             call().get_paginator("list_user_policies"),
             call().get_user_policy(UserName="one", PolicyName="policy-one"),
             call().get_user_policy(UserName="one", PolicyName="policy-two"),
+            call().get_paginator("list_user_policies"),
             call().get_user_policy(UserName="two", PolicyName="policy-one"),
             call().get_user_policy(UserName="two", PolicyName="policy-two"),
         ]
@@ -593,8 +594,8 @@ def test_delete_user(mocker):
             call(),
             call("iam"),
             call().get_paginator("list_user_policies"),
-            call().get_paginator("list_access_keys"),
             call().delete_user_policy(UserName="user-123", PolicyName="policy-one"),
+            call().get_paginator("list_access_keys"),
             call().delete_access_key(UserName="user-123", AccessKeyId="one"),
             call().delete_access_key(UserName="user-123", AccessKeyId="two"),
             call().delete_user(UserName="user-123"),
