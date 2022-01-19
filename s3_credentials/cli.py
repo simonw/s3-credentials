@@ -854,7 +854,7 @@ def output(iterator, headers, nl, csv, tsv):
             sys.stdout, headers, dialect="excel-tab" if tsv else "excel"
         )
         writer.writeheader()
-        writer.writerows(iterator)
+        writer.writerows(fix_json(row) for row in iterator)
     else:
         for line in stream_indented_json(iterator):
             click.echo(line)
@@ -889,3 +889,18 @@ def paginate(service, method, list_key, **kwargs):
     paginator = service.get_paginator(method)
     for response in paginator.paginate(**kwargs):
         yield from response[list_key]
+
+
+def fix_json(row):
+    # If a key value is list or dict, json encode it
+    return dict(
+        [
+            (
+                key,
+                json.dumps(value, indent=2, default=str)
+                if isinstance(value, (dict, list, tuple))
+                else value,
+            )
+            for key, value in row.items()
+        ]
+    )
