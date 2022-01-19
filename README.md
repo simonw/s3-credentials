@@ -485,6 +485,9 @@ Example usage:
   }
 ]
 ```
+Add `--nl` to collapse these to single lines as valid newline-delimited JSON.
+
+Add `--csv` or `--tsv` to get back CSV or TSV data.
 
 ### delete-user
 
