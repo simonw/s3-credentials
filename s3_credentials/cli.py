@@ -524,7 +524,6 @@ def list_roles(role_names, details, nl, csv, tsv, **boto_options):
         "Tags",
         "RoleLastUsed",
     )
-
     if details:
         headers += ("inline_policies", "attached_policies")
 
