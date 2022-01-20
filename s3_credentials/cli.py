@@ -740,7 +740,6 @@ def ensure_s3_role_exists(iam, sts):
                                 "AWS": "arn:aws:iam::{}:root".format(account_id)
                             },
                             "Action": "sts:AssumeRole",
-                            "Condition": {},
                         }
                     ],
                 }
