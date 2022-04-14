@@ -783,7 +783,7 @@ def list_bucket(bucket, prefix, nl, csv, tsv, **boto_options):
 @click.argument("bucket")
 @click.argument("key")
 @click.argument(
-    "content",
+    "path",
     type=click.Path(
         exists=True, file_okay=True, dir_okay=False, readable=True, allow_dash=True
     ),
@@ -794,22 +794,32 @@ def list_bucket(bucket, prefix, nl, csv, tsv, **boto_options):
 )
 @click.option("silent", "-s", "--silent", is_flag=True, help="Don't show progress bar")
 @common_boto3_options
-def put_object(bucket, key, content, content_type, silent, **boto_options):
-    "Upload an object to an S3 bucket"
+def put_object(bucket, key, path, content_type, silent, **boto_options):
+    """
+    Upload an object to an S3 bucket
+
+    To upload a file to /my-key.txt in the my-bucket bucket:
+
+        s3-credentials put-object my-bucket my-key.txt /path/to/file.txt
+
+    Use - to upload content from standard input:
+
+        echo "Hello" | s3-credentials put-object my-bucket hello.txt -
+    """
     s3 = make_client("s3", **boto_options)
     size = None
     extra_args = {}
-    if content == "-":
+    if path == "-":
         # boto needs to be able to seek
         fp = io.BytesIO(sys.stdin.buffer.read())
         if not silent:
             size = fp.getbuffer().nbytes
     else:
         if not content_type:
-            content_type = mimetypes.guess_type(content)[0]
-        fp = click.open_file(content, "rb")
+            content_type = mimetypes.guess_type(path)[0]
+        fp = click.open_file(path, "rb")
         if not silent:
-            size = os.path.getsize(content)
+            size = os.path.getsize(path)
     if content_type is not None:
         extra_args["ContentType"] = content_type
     if not silent:
