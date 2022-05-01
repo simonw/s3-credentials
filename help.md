@@ -357,7 +357,7 @@ Options:
   -h, --allowed-header TEXT  Allowed header e.g. Authorization
   -o, --allowed-origin TEXT  Allowed origin e.g. https://www.example.com/
   -e, --expose-header TEXT   Header to expose e.g. ETag
-  --max-age-seconds TEXT     How long to cache preflight requests
+  --max-age-seconds INTEGER  How long to cache preflight requests
   --access-key TEXT          AWS access key ID
   --secret-key TEXT          AWS secret access key
   --session-token TEXT       AWS session token
