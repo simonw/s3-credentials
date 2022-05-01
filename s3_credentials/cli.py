@@ -853,6 +853,83 @@ def get_object(bucket, key, output, **boto_options):
     s3.download_fileobj(bucket, key, fp)
 
 
+@cli.command()
+@click.argument("bucket")
+@click.option(
+    "allowed_methods",
+    "-m",
+    "--allowed-method",
+    multiple=True,
+    help="Allowed method e.g. GET",
+)
+@click.option(
+    "allowed_headers",
+    "-h",
+    "--allowed-header",
+    multiple=True,
+    help="Allowed header e.g. Authorization",
+)
+@click.option(
+    "allowed_origins",
+    "-o",
+    "--allowed-origin",
+    multiple=True,
+    help="Allowed origin e.g. https://www.example.com/",
+)
+@click.option(
+    "expose_headers",
+    "-e",
+    "--expose-header",
+    multiple=True,
+    help="Header to expose e.g. ETag",
+)
+@click.option(
+    "max_age_seconds", "--max-age-seconds", help="How long to cache preflight requests"
+)
+@common_boto3_options
+def set_cors_policy(
+    bucket,
+    allowed_methods,
+    allowed_headers,
+    allowed_origins,
+    expose_headers,
+    max_age_seconds,
+    **boto_options
+):
+    "Set CORS policy for a bucket"
+    s3 = make_client("s3", **boto_options)
+    if not bucket_exists(s3, bucket):
+        raise click.ClickException("Bucket {} does not exists".format(bucket))
+
+    cors_rule = {
+        "ID": "set-by-s3-credentials",
+        "AllowedOrigins": allowed_origins or ["*"],
+        "AllowedHeaders": allowed_headers,
+        "AllowedMethods": allowed_methods or ["GET"],
+        "ExposeHeaders": expose_headers,
+    }
+    if max_age_seconds:
+        cors_rule["MaxAgeSeconds"] = max_age_seconds
+
+    try:
+        s3.put_bucket_cors(Bucket=bucket, CORSConfiguration={"CORSRules": [cors_rule]})
+    except botocore.exceptions.ClientError as e:
+        raise click.ClickException(e)
+
+
+@cli.command()
+@click.argument("bucket")
+@common_boto3_options
+def get_cors_policy(bucket, **boto_options):
+    "Get CORS policy for a bucket"
+    s3 = make_client("s3", **boto_options)
+    try:
+        response = s3.get_bucket_cors(Bucket=bucket)
+    except botocore.exceptions.ClientError as e:
+        raise click.ClickException(e)
+    click.echo(json.dumps(response["CORSRules"], indent=4, default=str))
+
+
 def output(iterator, headers, nl, csv, tsv):
     if nl:
         for item in iterator:
