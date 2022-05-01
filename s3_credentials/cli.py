@@ -249,7 +249,22 @@ def create(
     dry_run,
     **boto_options
 ):
-    "Create and return new AWS credentials for specified S3 buckets"
+    """
+    Create and return new AWS credentials for specified S3 buckets - optionally
+    also creating the bucket if it does not yet exist.
+
+    To create a new bucket and output read-write credentials:
+
+        s3-credentials create my-new-bucket -c
+
+    To create read-only credentials for an existing bucket:
+
+        s3-credentials create my-existing-bucket --read-only
+
+    To create write-only credentials that are only valid for 15 minutes:
+
+        s3-credentials create my-existing-bucket --write-only -d 15m
+    """
     if read_only and write_only:
         raise click.ClickException(
             "Cannot use --read-only and --write-only at the same time"
@@ -602,7 +617,21 @@ def list_user_policies(usernames, **boto_options):
 @common_output_options
 @common_boto3_options
 def list_buckets(buckets, details, nl, csv, tsv, **boto_options):
-    "List buckets - defaults to all, or pass one or more bucket names"
+    """
+    List buckets
+
+    To list all buckets and their creation time as JSON:
+
+        s3-credentials list-buckets
+
+    For CSV for TSV format add --csv or --csv:
+
+        s3-credentials list-buckets --csv
+
+    For extra details per bucket (much slower) add --details
+
+        s3-credentials list-buckets --details
+    """
     s3 = make_client("s3", **boto_options)
 
     headers = ["Name", "CreationDate"]
@@ -649,7 +678,12 @@ def list_buckets(buckets, details, nl, csv, tsv, **boto_options):
 @click.argument("usernames", nargs=-1, required=True)
 @common_boto3_options
 def delete_user(usernames, **boto_options):
-    "Delete specified users, their access keys and their inline policies"
+    """
+    Delete specified users, their access keys and their inline policies
+
+
+        s3-credentials delete-user username1 username2
+    """
     iam = make_client("iam", **boto_options)
     for username in usernames:
         click.echo("User: {}".format(username))
@@ -761,7 +795,17 @@ def ensure_s3_role_exists(iam, sts):
 @common_output_options
 @common_boto3_options
 def list_bucket(bucket, prefix, nl, csv, tsv, **boto_options):
-    "List content of bucket"
+    """
+    List contents of bucket
+
+    To list the contents of a bucket as JSON:
+
+        s3-credentials list-bucket my-bucket
+
+    For CSV or TSV add --csv or --tsv:
+
+        s3-credentials list-bucket my-bucket --csv
+    """
     s3 = make_client("s3", **boto_options)
     kwargs = {"Bucket": bucket}
     if prefix:
@@ -844,7 +888,17 @@ def put_object(bucket, key, path, content_type, silent, **boto_options):
 )
 @common_boto3_options
 def get_object(bucket, key, output, **boto_options):
-    "Download an object from an S3 bucket"
+    """
+    Download an object from an S3 bucket
+
+    To see the contents of the bucket on standard output:
+
+        s3-credentials get-object my-bucket hello.txt
+
+    To save to a file:
+
+        s3-credentials get-object my-bucket hello.txt -o hello.txt
+    """
     s3 = make_client("s3", **boto_options)
     if not output:
         fp = sys.stdout.buffer
