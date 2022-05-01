@@ -43,8 +43,8 @@ Commands:
   create              Create and return new AWS credentials for specified...
   delete-user         Delete specified users, their access keys and their...
   get-object          Download an object from an S3 bucket
-  list-bucket         List content of bucket
-  list-buckets        List buckets - defaults to all, or pass one or more...
+  list-bucket         List contents of bucket
+  list-buckets        List buckets
   list-roles          List all roles
   list-user-policies  List inline policies for specified user
   list-users          List all users
@@ -57,7 +57,20 @@ Commands:
 ```
 Usage: s3-credentials create [OPTIONS] BUCKETS...
 
-  Create and return new AWS credentials for specified S3 buckets
+  Create and return new AWS credentials for specified S3 buckets - optionally
+  also creating the bucket if it does not yet exist.
+
+  To create a new bucket and output read-write credentials:
+
+      s3-credentials create my-new-bucket -c
+
+  To create read-only credentials for an existing bucket:
+
+      s3-credentials create my-existing-bucket --read-only
+
+  To create write-only credentials that are only valid for 15 minutes:
+
+      s3-credentials create my-existing-bucket --write-only -d 15m
 
 Options:
   -f, --format [ini|json]         Output format for credentials
@@ -96,6 +109,8 @@ Usage: s3-credentials delete-user [OPTIONS] USERNAMES...
 
   Delete specified users, their access keys and their inline policies
 
+      s3-credentials delete-user username1 username2
+
 Options:
   --access-key TEXT     AWS access key ID
   --secret-key TEXT     AWS secret access key
@@ -111,6 +126,14 @@ Usage: s3-credentials get-object [OPTIONS] BUCKET KEY
 
   Download an object from an S3 bucket
 
+  To see the contents of the bucket on standard output:
+
+      s3-credentials get-object my-bucket hello.txt
+
+  To save to a file:
+
+      s3-credentials get-object my-bucket hello.txt -o hello.txt
+
 Options:
   -o, --output FILE     Write to this file instead of stdout
   --access-key TEXT     AWS access key ID
@@ -125,7 +148,15 @@ Options:
 ```
 Usage: s3-credentials list-bucket [OPTIONS] BUCKET
 
-  List content of bucket
+  List contents of bucket
+
+  To list the contents of a bucket as JSON:
+
+      s3-credentials list-bucket my-bucket
+
+  For CSV or TSV add --csv or --tsv:
+
+      s3-credentials list-bucket my-bucket --csv
 
 Options:
   --prefix TEXT         List keys starting with this prefix
@@ -144,7 +175,19 @@ Options:
 ```
 Usage: s3-credentials list-buckets [OPTIONS] [BUCKETS]...
 
-  List buckets - defaults to all, or pass one or more bucket names
+  List buckets
+
+  To list all buckets and their creation time as JSON:
+
+      s3-credentials list-buckets
+
+  For CSV for TSV format add --csv or --csv:
+
+      s3-credentials list-buckets --csv
+
+  For extra details per bucket (much slower) add --details
+
+      s3-credentials list-buckets --details
 
 Options:
   --details             Include extra bucket details (slower)
