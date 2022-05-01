@@ -147,6 +147,15 @@ class DurationParam(click.ParamType):
     is_flag=True,
 )
 def policy(buckets, read_only, write_only, prefix, public_bucket):
+    """
+    Output generated JSON policy for one or more buckets
+
+    Takes the same options as s3-credentials create
+
+    To output a read-only JSON policy for a bucket:
+
+        s3-credentials policy my-bucket --read-only
+    """
     "Generate JSON policy for one or more buckets"
     if public_bucket:
         if len(buckets) != 1:
@@ -498,7 +507,15 @@ def whoami(**boto_options):
 @common_output_options
 @common_boto3_options
 def list_users(nl, csv, tsv, **boto_options):
-    "List all users"
+    """
+    List all users for this account
+
+        s3-credentials list-users
+
+    Add --csv or --csv for CSV or TSV format:
+
+        s3-credentials list-users --csv
+    """
     iam = make_client("iam", **boto_options)
     output(
         paginate(iam, "list_users", "Users"),
@@ -524,7 +541,21 @@ def list_users(nl, csv, tsv, **boto_options):
 @common_output_options
 @common_boto3_options
 def list_roles(role_names, details, nl, csv, tsv, **boto_options):
-    "List all roles"
+    """
+    List roles
+
+    To list all roles for this AWS account:
+
+        s3-credentials list-roles
+
+    Add --csv or --csv for CSV or TSV format:
+
+        s3-credentials list-roles --csv
+
+    For extra details per role (much slower) add --details
+
+        s3-credentials list-roles --details
+    """
     iam = make_client("iam", **boto_options)
     headers = (
         "Path",
@@ -593,7 +624,13 @@ def list_roles(role_names, details, nl, csv, tsv, **boto_options):
 @click.argument("usernames", nargs=-1)
 @common_boto3_options
 def list_user_policies(usernames, **boto_options):
-    "List inline policies for specified user"
+    """
+    List inline policies for specified users
+
+        s3-credentials list-user-policies username
+
+    Returns policies for all users if no usernames are provided.
+    """
     iam = make_client("iam", **boto_options)
     if not usernames:
         usernames = [user["UserName"] for user in paginate(iam, "list_users", "Users")]
@@ -624,7 +661,7 @@ def list_buckets(buckets, details, nl, csv, tsv, **boto_options):
 
         s3-credentials list-buckets
 
-    For CSV for TSV format add --csv or --csv:
+    Add --csv or --csv for CSV or TSV format:
 
         s3-credentials list-buckets --csv
 
@@ -802,7 +839,7 @@ def list_bucket(bucket, prefix, nl, csv, tsv, **boto_options):
 
         s3-credentials list-bucket my-bucket
 
-    For CSV or TSV add --csv or --tsv:
+    Add --csv or --csv for CSV or TSV format:
 
         s3-credentials list-bucket my-bucket --csv
     """

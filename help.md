@@ -45,10 +45,10 @@ Commands:
   get-object          Download an object from an S3 bucket
   list-bucket         List contents of bucket
   list-buckets        List buckets
-  list-roles          List all roles
-  list-user-policies  List inline policies for specified user
-  list-users          List all users
-  policy              Generate JSON policy for one or more buckets
+  list-roles          List roles
+  list-user-policies  List inline policies for specified users
+  list-users          List all users for this account
+  policy              Output generated JSON policy for one or more buckets
   put-object          Upload an object to an S3 bucket
   whoami              Identify currently authenticated user
 ```
@@ -154,7 +154,7 @@ Usage: s3-credentials list-bucket [OPTIONS] BUCKET
 
       s3-credentials list-bucket my-bucket
 
-  For CSV or TSV add --csv or --tsv:
+  Add --csv or --csv for CSV or TSV format:
 
       s3-credentials list-bucket my-bucket --csv
 
@@ -181,7 +181,7 @@ Usage: s3-credentials list-buckets [OPTIONS] [BUCKETS]...
 
       s3-credentials list-buckets
 
-  For CSV for TSV format add --csv or --csv:
+  Add --csv or --csv for CSV or TSV format:
 
       s3-credentials list-buckets --csv
 
@@ -206,7 +206,19 @@ Options:
 ```
 Usage: s3-credentials list-roles [OPTIONS] [ROLE_NAMES]...
 
-  List all roles
+  List roles
+
+  To list all roles for this AWS account:
+
+      s3-credentials list-roles
+
+  Add --csv or --csv for CSV or TSV format:
+
+      s3-credentials list-roles --csv
+
+  For extra details per role (much slower) add --details
+
+      s3-credentials list-roles --details
 
 Options:
   --details             Include attached policies (slower)
@@ -225,7 +237,11 @@ Options:
 ```
 Usage: s3-credentials list-user-policies [OPTIONS] [USERNAMES]...
 
-  List inline policies for specified user
+  List inline policies for specified users
+
+      s3-credentials list-user-policies username
+
+  Returns policies for all users if no usernames are provided.
 
 Options:
   --access-key TEXT     AWS access key ID
@@ -240,7 +256,13 @@ Options:
 ```
 Usage: s3-credentials list-users [OPTIONS]
 
-  List all users
+  List all users for this account
+
+      s3-credentials list-users
+
+  Add --csv or --csv for CSV or TSV format:
+
+      s3-credentials list-users --csv
 
 Options:
   --nl                  Output newline-delimited JSON
@@ -258,7 +280,13 @@ Options:
 ```
 Usage: s3-credentials policy [OPTIONS] BUCKETS...
 
-  Generate JSON policy for one or more buckets
+  Output generated JSON policy for one or more buckets
+
+  Takes the same options as s3-credentials create
+
+  To output a read-only JSON policy for a bucket:
+
+      s3-credentials policy my-bucket --read-only
 
 Options:
   --read-only      Only allow reading from the bucket
