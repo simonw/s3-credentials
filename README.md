@@ -533,6 +533,53 @@ This defaults to outputting the downloaded file to the terminal. You can instead
 
     s3-credentials get-object my-bucket hello.txt -o /path/to/hello.txt
 
+
+### set-cors-policy and get-cors-policy
+
+You can set the [CORS policy](https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html) for a bucket using the `set-cors-policy` command. S3 CORS policies are set at the bucket level - they cannot be set for individual items.
+
+First, create the bucket. Make sure to make it `--public`:
+
+    s3-credentials create my-cors-bucket --public -c
+
+You can set a default CORS policy - allowing `GET` requests from any origin - like this:
+
+    s3-credentials set-cors-policy my-cors-bucket
+
+You can use the `get-cors-policy` command to confirm the policy you have set:
+
+    s3-credentials get-cors-policy my-cors-bucket
+    [
+        {
+            "ID": "set-by-s3-credentials",
+            "AllowedMethods": [
+                "GET"
+            ],
+            "AllowedOrigins": [
+                "*"
+            ]
+        }
+    ]
+
+To customize the CORS policy, use the following options:
+
+- `-m/--allowed-method` - Allowed method e.g. `GET`
+- `-h/--allowed-header` - Allowed header e.g. `Authorization`
+- `-o/--allowed-origin` - Allowed origin e.g. `https://www.example.com/`
+- `-e/--expose-header` -  Header to expose e.g. `ETag`
+- `--max-age-seconds` - How long to cache preflight requests
+
+Each of these can be passed multiple times with the exception of `--max-age-seconds`.
+
+The following example allows GET and PUT methods from code running on `https://www.example.com/`, allows the encoming `Authorization` header and exposes the `ETag` header. It also sets the client to cache preflight requests for 60 seconds:
+
+    s3-credentials set-cors-policy my-cors-bucket2 \
+      --allowed-method GET \
+      --allowed-method PUT \
+      --allowed-origin https://www.example.com/ \
+      --expose-header ETag \
+      --max-age-seconds 60
+
 ## Common options
 
 All of the `s3-credentials` commands also accept the following options for authenticating against AWS:

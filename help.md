@@ -7,20 +7,11 @@ import cog
 from s3_credentials import cli
 from click.testing import CliRunner
 runner = CliRunner()
-for command in (
-    "",
-    "create",
-    "delete-user",
-    "get-object",
-    "list-bucket",
-    "list-buckets",
-    "list-roles",
-    "list-user-policies",
-    "list-users",
-    "policy",
-    "put-object",
-    "whoami",
-):
+# Get a list of all the commands
+result = runner.invoke(cli.cli, ["--help"])
+lines = result.output.split("Commands:")[1].strip().split("\n")
+commands = [l.strip().split()[0] for l in lines if l]
+for command in [""] + commands:
     result = runner.invoke(cli.cli, ([command] if command else []) + ["--help"])
     help = result.output.replace("Usage: cli", "Usage: s3-credentials")
     cog.out(
@@ -42,6 +33,7 @@ Options:
 Commands:
   create              Create and return new AWS credentials for specified...
   delete-user         Delete specified users, their access keys and their...
+  get-cors-policy     Get CORS policy for a bucket
   get-object          Download an object from an S3 bucket
   list-bucket         List contents of bucket
   list-buckets        List buckets
@@ -50,6 +42,7 @@ Commands:
   list-users          List all users for this account
   policy              Output generated JSON policy for one or more buckets
   put-object          Upload an object to an S3 bucket
+  set-cors-policy     Set CORS policy for a bucket
   whoami              Identify currently authenticated user
 ```
 ### s3-credentials create --help
@@ -110,6 +103,25 @@ Usage: s3-credentials delete-user [OPTIONS] USERNAMES...
   Delete specified users, their access keys and their inline policies
 
       s3-credentials delete-user username1 username2
+
+Options:
+  --access-key TEXT     AWS access key ID
+  --secret-key TEXT     AWS secret access key
+  --session-token TEXT  AWS session token
+  --endpoint-url TEXT   Custom endpoint URL
+  -a, --auth FILENAME   Path to JSON/INI file containing credentials
+  --help                Show this message and exit.
+```
+### s3-credentials get-cors-policy --help
+
+```
+Usage: s3-credentials get-cors-policy [OPTIONS] BUCKET
+
+  Get CORS policy for a bucket
+
+     s3-credentials get-cors-policy my-bucket
+
+  Returns the CORS policy for this bucket, if set, as JSON
 
 Options:
   --access-key TEXT     AWS access key ID
@@ -320,6 +332,38 @@ Options:
   --endpoint-url TEXT   Custom endpoint URL
   -a, --auth FILENAME   Path to JSON/INI file containing credentials
   --help                Show this message and exit.
+```
+### s3-credentials set-cors-policy --help
+
+```
+Usage: s3-credentials set-cors-policy [OPTIONS] BUCKET
+
+  Set CORS policy for a bucket
+
+  To allow GET requests from any origin:
+
+      s3-credentials set-cors-policy my-bucket
+
+  To allow GET and PUT from a specific origin and expose ETag headers:
+
+      s3-credentials set-cors-policy my-bucket \
+        --allowed-method GET \
+        --allowed-method PUT \
+        --allowed-origin https://www.example.com/ \
+        --expose-header ETag
+
+Options:
+  -m, --allowed-method TEXT  Allowed method e.g. GET
+  -h, --allowed-header TEXT  Allowed header e.g. Authorization
+  -o, --allowed-origin TEXT  Allowed origin e.g. https://www.example.com/
+  -e, --expose-header TEXT   Header to expose e.g. ETag
+  --max-age-seconds INTEGER  How long to cache preflight requests
+  --access-key TEXT          AWS access key ID
+  --secret-key TEXT          AWS secret access key
+  --session-token TEXT       AWS session token
+  --endpoint-url TEXT        Custom endpoint URL
+  -a, --auth FILENAME        Path to JSON/INI file containing credentials
+  --help                     Show this message and exit.
 ```
 ### s3-credentials whoami --help
 

@@ -602,6 +602,109 @@ def test_delete_user(mocker):
         ]
 
 
+def test_get_cors_policy(mocker):
+    boto3 = mocker.patch("boto3.client")
+    boto3.return_value = Mock()
+    boto3.return_value.get_bucket_cors.return_value = {
+        "CORSRules": [
+            {
+                "ID": "set-by-s3-credentials",
+                "AllowedMethods": ["GET"],
+                "AllowedOrigins": ["*"],
+            }
+        ]
+    }
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, ["get-cors-policy", "my-bucket"], catch_exceptions=False
+        )
+        assert result.exit_code == 0
+        assert result.output == (
+            "["
+            "\n    {"
+            '\n        "ID": "set-by-s3-credentials",'
+            '\n        "AllowedMethods": ['
+            '\n            "GET"'
+            "\n        ],"
+            '\n        "AllowedOrigins": ['
+            '\n            "*"'
+            "\n        ]"
+            "\n    }"
+            "\n]\n"
+        )
+
+        assert boto3.mock_calls == [
+            call("s3"),
+            call().get_bucket_cors(Bucket="my-bucket"),
+        ]
+
+
+@pytest.mark.parametrize(
+    "options,expected_json",
+    (
+        (
+            [],
+            {
+                "ID": "set-by-s3-credentials",
+                "AllowedOrigins": ["*"],
+                "AllowedHeaders": (),
+                "AllowedMethods": ["GET"],
+                "ExposeHeaders": (),
+            },
+        ),
+        (
+            [
+                "--allowed-method",
+                "GET",
+                "--allowed-method",
+                "PUT",
+                "--allowed-origin",
+                "https://www.example.com/",
+                "--expose-header",
+                "ETag",
+            ],
+            {
+                "ID": "set-by-s3-credentials",
+                "AllowedOrigins": ("https://www.example.com/",),
+                "AllowedHeaders": (),
+                "AllowedMethods": ("GET", "PUT"),
+                "ExposeHeaders": ("ETag",),
+            },
+        ),
+        (
+            ["--max-age-seconds", 60],
+            {
+                "ID": "set-by-s3-credentials",
+                "AllowedOrigins": ["*"],
+                "AllowedHeaders": (),
+                "AllowedMethods": ["GET"],
+                "ExposeHeaders": (),
+                "MaxAgeSeconds": 60,
+            },
+        ),
+    ),
+)
+def test_set_cors_policy(mocker, options, expected_json):
+    boto3 = mocker.patch("boto3.client")
+    boto3.return_value = Mock()
+    boto3.return_value.put_bucket_cors.return_value = {}
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, ["set-cors-policy", "my-bucket"] + options, catch_exceptions=False
+        )
+        assert result.exit_code == 0
+        assert result.output == ""
+        assert boto3.mock_calls == [
+            call("s3"),
+            call().head_bucket(Bucket="my-bucket"),
+            call().put_bucket_cors(
+                Bucket="my-bucket", CORSConfiguration={"CORSRules": [expected_json]}
+            ),
+        ]
+
+
 @pytest.mark.parametrize(
     "strategy,expected_error",
     (
