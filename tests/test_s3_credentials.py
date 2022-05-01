@@ -672,6 +672,17 @@ def test_get_cors_policy(mocker):
                 "ExposeHeaders": ("ETag",),
             },
         ),
+        (
+            ["--max-age-seconds", 60],
+            {
+                "ID": "set-by-s3-credentials",
+                "AllowedOrigins": ["*"],
+                "AllowedHeaders": (),
+                "AllowedMethods": ["GET"],
+                "ExposeHeaders": (),
+                "MaxAgeSeconds": 60,
+            },
+        ),
     ),
 )
 def test_set_cors_policy(mocker, options, expected_json):

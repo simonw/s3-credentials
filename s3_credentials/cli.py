@@ -975,7 +975,10 @@ def get_object(bucket, key, output, **boto_options):
     help="Header to expose e.g. ETag",
 )
 @click.option(
-    "max_age_seconds", "--max-age-seconds", help="How long to cache preflight requests"
+    "max_age_seconds",
+    "--max-age-seconds",
+    type=int,
+    help="How long to cache preflight requests",
 )
 @common_boto3_options
 def set_cors_policy(
