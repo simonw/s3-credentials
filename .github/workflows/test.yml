@@ -29,4 +29,4 @@ jobs:
         pytest
     - name: Check if README is up-to-date
       run: |
-        cog --check README.md
+        cog --check README.md help.md
