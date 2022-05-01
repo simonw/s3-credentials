@@ -987,7 +987,22 @@ def set_cors_policy(
     max_age_seconds,
     **boto_options
 ):
-    "Set CORS policy for a bucket"
+    """
+    Set CORS policy for a bucket
+
+    To allow GET requests from any origin:
+
+        s3-credentials set-cors-policy my-bucket
+
+    To allow GET and PUT from a specific origin and expose ETag headers:
+
+    \b
+        s3-credentials set-cors-policy my-bucket \\
+          --allowed-method GET \\
+          --allowed-method PUT \\
+          --allowed-origin https://www.example.com/ \\
+          --expose-header ETag
+    """
     s3 = make_client("s3", **boto_options)
     if not bucket_exists(s3, bucket):
         raise click.ClickException("Bucket {} does not exists".format(bucket))
@@ -1012,7 +1027,13 @@ def set_cors_policy(
 @click.argument("bucket")
 @common_boto3_options
 def get_cors_policy(bucket, **boto_options):
-    "Get CORS policy for a bucket"
+    """
+    Get CORS policy for a bucket
+
+       s3-credentials get-cors-policy my-bucket
+
+    Returns the CORS policy for this bucket, if set, as JSON
+    """
     s3 = make_client("s3", **boto_options)
     try:
         response = s3.get_bucket_cors(Bucket=bucket)
