@@ -93,6 +93,7 @@ The `create` command has a number of options:
 - `--read-only`: The user should only be allowed to read files from the bucket.
 - `--write-only`: The user should only be allowed to write files to the bucket, but not read them. This can be useful for logging and backups.
 - `--policy filepath-or-string`: A custom policy document (as a file path, literal JSON string or `-` for standard input) - see below.
+- `--statement json-statement`: Custom JSON statement block to be added to the generated policy.
 - `--bucket-region`: If creating buckets, the region in which they should be created.
 - `--silent`: Don't output details of what is happening, just output the JSON for the created access credentials at the end.
 - `--dry-run`: Output details of AWS changes that would have been made without applying them.
@@ -164,6 +165,14 @@ You can also pass `-` to read from standard input, or you can pass the literal J
   ]
 }'
 ```
+You can also specify one or more extra statement blocks that should be added to the generated policy, using `--statement JSON`. This example enables the AWS `textract:` APIs for the generated credentials, useful for using with the [s3-ocr](https://datasette.io/tools/s3-ocr) tool:
+```
+% s3-credentials create my-s3-bucket --statement '{
+  "Effect": "Allow",
+  "Action": "textract:*",
+  "Resource": "*"
+}'
+```
 
 ## Other commands
 
@@ -174,6 +183,7 @@ You can use the `s3-credentials policy` command to generate the JSON policy docu
 - `--read-only` - generate a read-only policy
 - `--write-only` - generate a write-only policy
 - `--prefix` - policy should be restricted to keys in the bucket that start with this prefix
+- `--statement json-statement`: Custom JSON statement block
 - `--public-bucket` - generate a bucket policy for a public bucket
 
 With none of these options it defaults to a read-write policy.

@@ -80,6 +80,7 @@ Options:
   --policy POLICY                 Path to a policy.json file, or literal JSON
                                   string - $!BUCKET_NAME!$ will be replaced with
                                   the name of the bucket
+  --statement STATEMENT           JSON statement to add to the policy
   --bucket-region TEXT            Region in which to create buckets
   --silent                        Don't show performed steps
   --dry-run                       Show steps without executing them
@@ -301,11 +302,12 @@ Usage: s3-credentials policy [OPTIONS] BUCKETS...
       s3-credentials policy my-bucket --read-only
 
 Options:
-  --read-only      Only allow reading from the bucket
-  --write-only     Only allow writing to the bucket
-  --prefix TEXT    Restrict to keys starting with this prefix
-  --public-bucket  Bucket policy for allowing public access
-  --help           Show this message and exit.
+  --read-only            Only allow reading from the bucket
+  --write-only           Only allow writing to the bucket
+  --prefix TEXT          Restrict to keys starting with this prefix
+  --statement STATEMENT  JSON statement to add to the policy
+  --public-bucket        Bucket policy for allowing public access
+  --help                 Show this message and exit.
 ```
 ### s3-credentials put-object --help
 

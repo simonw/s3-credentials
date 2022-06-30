@@ -6,7 +6,7 @@ import textwrap
 
 
 def assert_match_with_wildcards(pattern, input):
-    # Pattern language is simple: '*' becomes '*?'
+    # Pattern language is simple: '*' becomes '.*?'
     bits = pattern.split("*")
     regex = "^{}$".format(".*?".join(re.escape(bit) for bit in bits))
     print(regex)
@@ -59,6 +59,17 @@ Would assume role using following policy for 1200 seconds:*"""
 Would create user: 's3.read-write.my-bucket' with permissions boundary: 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
 Would attach policy called 's3.read-write.my-bucket' to user 's3.read-write.my-bucket', details:*
 Would call create access key for user 's3.read-write.my-bucket'"""
+            ),
+        ),
+        (
+            [
+                "--statement",
+                '{"Effect": "Allow", "Action": "textract:*", "Resource": "*"}',
+            ],
+            (
+                """Would create bucket: 'my-bucket'
+Would create user: 's3.custom.my-bucket' with permissions boundary: 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
+*"Action": "textract:*"""
             ),
         ),
     ),

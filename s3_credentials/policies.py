@@ -1,5 +1,8 @@
-def read_write(bucket, prefix="*"):
-    return wrap_policy(read_write_statements(bucket, prefix=prefix))
+def read_write(bucket, prefix="*", extra_statements=None):
+    statements = read_write_statements(bucket, prefix=prefix)
+    if extra_statements:
+        statements.extend(extra_statements)
+    return wrap_policy(statements)
 
 
 def read_write_statements(bucket, prefix="*"):
@@ -15,8 +18,11 @@ def read_write_statements(bucket, prefix="*"):
     ]
 
 
-def read_only(bucket, prefix="*"):
-    return wrap_policy(read_only_statements(bucket, prefix))
+def read_only(bucket, prefix="*", extra_statements=None):
+    statements = read_only_statements(bucket, prefix=prefix)
+    if extra_statements:
+        statements.extend(extra_statements)
+    return wrap_policy(statements)
 
 
 def read_only_statements(bucket, prefix="*"):
@@ -70,8 +76,11 @@ def read_only_statements(bucket, prefix="*"):
     ]
 
 
-def write_only(bucket, prefix="*"):
-    return wrap_policy(write_only_statements(bucket, prefix))
+def write_only(bucket, prefix="*", extra_statements=None):
+    statements = write_only_statements(bucket, prefix=prefix)
+    if extra_statements:
+        statements.extend(extra_statements)
+    return wrap_policy(statements)
 
 
 def write_only_statements(bucket, prefix="*"):

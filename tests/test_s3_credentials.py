@@ -282,9 +282,11 @@ READ_WRITE_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow",
 READ_ONLY_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:ListBucket", "s3:GetBucketLocation"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectAcl", "s3:GetObjectLegalHold", "s3:GetObjectRetention", "s3:GetObjectTagging"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}'
 WRITE_ONLY_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:PutObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}'
 PREFIX_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:GetBucketLocation"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": ["s3:ListBucket"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"], "Condition": {"StringLike": {"s3:prefix": ["my-prefix/*"]}}}, {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectAcl", "s3:GetObjectLegalHold", "s3:GetObjectRetention", "s3:GetObjectTagging"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/my-prefix/*"]}, {"Effect": "Allow", "Action": ["s3:PutObject", "s3:DeleteObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/my-prefix/*"]}]}'
+EXTRA_STATEMENTS_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:ListBucket", "s3:GetBucketLocation"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectAcl", "s3:GetObjectLegalHold", "s3:GetObjectRetention", "s3:GetObjectTagging"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}, {"Effect": "Allow", "Action": ["s3:PutObject", "s3:DeleteObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}, {"Effect": "Allow", "Action": "textract:*", "Resource": "*"}]}'
 
 # Used by both test_create and test_create_duration
 CREATE_TESTS = (
+    # options,use_policy_stdin,expected_policy,expected_name_fragment
     ([], False, READ_WRITE_POLICY, "read-write"),
     (["--read-only"], False, READ_ONLY_POLICY, "read-only"),
     (["--write-only"], False, WRITE_ONLY_POLICY, "write-only"),
@@ -292,6 +294,12 @@ CREATE_TESTS = (
     (["--policy", "POLICYFILEPATH"], False, CUSTOM_POLICY, "custom"),
     (["--policy", "-"], True, CUSTOM_POLICY, "custom"),
     (["--policy", CUSTOM_POLICY], False, CUSTOM_POLICY, "custom"),
+    (
+        ["--statement", '{"Effect": "Allow", "Action": "textract:*", "Resource": "*"}'],
+        False,
+        EXTRA_STATEMENTS_POLICY,
+        "custom",
+    ),
 )
 
 
@@ -342,6 +350,22 @@ def test_create(
                 expected_name_fragment
             ),
         ]
+
+
+@pytest.mark.parametrize(
+    "statement,expected_error",
+    (
+        ("", "Invalid JSON string"),
+        ("{}", "missing required keys: Action, Effect, Resource"),
+        ('{"Action": 1}', "missing required keys: Effect, Resource"),
+        ('{"Action": 1, "Effect": 2}', "missing required keys: Resource"),
+    ),
+)
+def test_create_statement_error(statement, expected_error):
+    runner = CliRunner()
+    result = runner.invoke(cli, ["create", "--statement", statement])
+    assert result.exit_code == 2
+    assert expected_error in result.output
 
 
 @pytest.fixture
@@ -820,6 +844,13 @@ def test_auth_option_errors(extra_option):
         (["--read-only"], READ_ONLY_POLICY),
         (["--write-only"], WRITE_ONLY_POLICY),
         (["--prefix", "my-prefix/"], PREFIX_POLICY),
+        (
+            [
+                "--statement",
+                '{"Effect": "Allow", "Action": "textract:*", "Resource": "*"}',
+            ],
+            EXTRA_STATEMENTS_POLICY,
+        ),
     ),
 )
 def test_policy(options, expected):
