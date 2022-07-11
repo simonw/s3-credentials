@@ -97,7 +97,7 @@ The `create` command has a number of options:
 - `--bucket-region`: If creating buckets, the region in which they should be created.
 - `--silent`: Don't output details of what is happening, just output the JSON for the created access credentials at the end.
 - `--dry-run`: Output details of AWS changes that would have been made without applying them.
-- `--user-permissions-boundary`: Custom [permissions boundary](https://docs.aws.amazon.com`/IAM/latest/UserGuide/access_policies_boundaries.html) to use for users created by this tool. The default is to restrict those users to only interacting with S3, taking the `--read-only` option into account. Use `none` to create users without any permissions boundary at all.
+- `--user-permissions-boundary`: Custom [permissions boundary](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html) to use for users created by this tool. The default is to restrict those users to only interacting with S3, taking the `--read-only` option into account. Use `none` to create users without any permissions boundary at all.
 
 ### Changes that will be made to your AWS account
 
