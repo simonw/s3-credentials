@@ -328,6 +328,9 @@ def create(
     if write_only:
         permission = "write-only"
 
+    if not user_permissions_boundary and (policy or extra_statements):
+        user_permissions_boundary = "none"
+
     s3 = None
     iam = None
     sts = None

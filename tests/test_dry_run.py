@@ -68,7 +68,7 @@ Would call create access key for user 's3.read-write.my-bucket'"""
             ],
             (
                 """Would create bucket: 'my-bucket'
-Would create user: 's3.custom.my-bucket' with permissions boundary: 'arn:aws:iam::aws:policy/AmazonS3FullAccess'
+Would create user: 's3.custom.my-bucket'
 *"Action": "textract:*"""
             ),
         ),
