@@ -858,6 +858,7 @@ def ensure_s3_role_exists(iam, sts):
                     ],
                 }
             ),
+            MaxSessionDuration=12 * 60 * 60,
         )
         # Attach AmazonS3FullAccess to it - note that even though we use full access
         # on the role itself any time we call sts.assume_role() we attach an additional
