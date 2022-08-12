@@ -78,7 +78,7 @@ This accepts the same `--nl`, `--csv` and `--tsv` options as `list-users`.
 
 Add `--details` to include details of the bucket ACL, website configuration and public access block settings. This is useful for running a security audit of your buckets.
 
-Using `--details` adds three additional API calls for each bucket, so it is advisable to use it with one or more explicit bucket names.
+Using `--details` adds several additional API calls for each bucket, so it is advisable to use it with one or more explicit bucket names.
 ```
 % s3-credentials list-buckets simonw-test-public-website-bucket --details
 [
