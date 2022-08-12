@@ -77,7 +77,11 @@ def common_output_options(fn):
 @click.group()
 @click.version_option()
 def cli():
-    "A tool for creating credentials for accessing S3 buckets"
+    """
+    A tool for creating credentials for accessing S3 buckets
+
+    Documentation: https://s3-credentials.readthedocs.io/
+    """
 
 
 class PolicyParam(click.ParamType):
