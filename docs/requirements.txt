@@ -1,0 +1,4 @@
+furo
+sphinx-autobuild
+myst-parser
+cogapp
