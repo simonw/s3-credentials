@@ -1,4 +1,4 @@
-## Contributing
+# Contributing
 
 To contribute to this tool, first checkout the code. Then create a new virtual environment:
 
@@ -22,7 +22,7 @@ Any changes to the generated policies require an update to the README using [Cog
 
     cog -r README.md
 
-### Integration tests
+## Integration tests
 
 The main tests all use stubbed interfaces to AWS, so will not make any outbound API calls.
 

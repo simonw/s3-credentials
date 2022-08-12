@@ -1,4 +1,4 @@
-## Creating S3 credentials
+# Creating S3 credentials
 
 The `s3-credentials create` command is the core feature of this tool. Pass it one or more S3 bucket names, specify a policy (read-write, read-only or write-only) and it will return AWS credentials that can be used to access those buckets.
 
@@ -69,7 +69,7 @@ The `create` command has a number of options:
 - `--dry-run`: Output details of AWS changes that would have been made without applying them.
 - `--user-permissions-boundary`: Custom [permissions boundary](https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html) to use for users created by this tool. The default is to restrict those users to only interacting with S3, taking the `--read-only` option into account. Use `none` to create users without any permissions boundary at all.
 
-### Changes that will be made to your AWS account
+## Changes that will be made to your AWS account
 
 How the tool works varies depending on if you are creating temporary or permanent credentials.
 
@@ -89,7 +89,7 @@ For temporary credentials:
 
 You can run the `create` command with the `--dry-run` option to see a summary of changes that would be applied, including details of generated policy documents, without actually applying those changes.
 
-### Using a custom policy
+## Using a custom policy
 
 The policy documents applied by this tool [are listed here](policy-documents.md).
 

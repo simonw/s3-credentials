@@ -1,6 +1,6 @@
-## Other commands
+# Other commands
 
-### policy
+## policy
 
 You can use the `s3-credentials policy` command to generate the JSON policy document that would be used without applying it. The command takes one or more required bucket names and a subset of the options available on the `create` command:
 
@@ -18,7 +18,7 @@ With none of these options it defaults to a read-write policy.
 ...
 ```
 
-### whoami
+## whoami
 
 To see which user you are authenticated as:
 
@@ -36,7 +36,7 @@ s3-credentials whoami --auth auth.json
     "Arn": "arn:aws:iam::462092780466:user/s3.read-only.static.niche-museums.com"
 }
 ```
-### list-users
+## list-users
 
 To see a list of all users that exist for your AWS account:
 
@@ -48,7 +48,7 @@ Add `--nl` to collapse these to single lines as valid newline-delimited JSON.
 
 Add `--csv` or `--tsv` to get back CSV or TSV data.
 
-### list-buckets
+## list-buckets
 
 Shows a list of all buckets in your AWS account.
 
@@ -146,7 +146,7 @@ A bucket with `public_access_block` might look like this:
 }
 ```
 
-### list-bucket
+## list-bucket
 
 To list the contents of a bucket, use `list-bucket`:
 
@@ -173,7 +173,7 @@ You can use the `--prefix myprefix/` option to list only keys that start with a 
 
 The commmand accepts the same `--nl`, `--csv` and `--tsv` options as `list-users`.
 
-### list-user-policies
+## list-user-policies
 
 To see a list of inline policies belonging to users:
 
@@ -208,7 +208,7 @@ You can pass any number of usernames here. If you don't specify a username the t
 
     s3-credentials list-user-policies
 
-### list-roles
+## list-roles
 
 The `list-roles` command lists all of the roles available for the authenticated account.
 
@@ -325,7 +325,7 @@ Add `--nl` to collapse these to single lines as valid newline-delimited JSON.
 
 Add `--csv` or `--tsv` to get back CSV or TSV data.
 
-### delete-user
+## delete-user
 
 In trying out this tool it's possible you will create several different user accounts that you later decide to clean up.
 
@@ -342,7 +342,7 @@ User: s3.read-write.simonw-test-bucket-10
 ```
 You can pass it multiple usernames to delete multiple users at a time.
 
-### put-object
+## put-object
 
 You can upload a file to a key in an S3 bucket using `s3-credentials put-object`:
 
@@ -359,7 +359,7 @@ The `Content-Type` on the uploaded object will be automatically set based on the
     echo "<h1>Hello World</h1>" | \
       s3-credentials put-object my-bucket hello.html - --content-type "text/html"
 
-### get-object
+## get-object
 
 To download a file from a bucket use `s3-credentials get-object`:
 
@@ -370,7 +370,7 @@ This defaults to outputting the downloaded file to the terminal. You can instead
     s3-credentials get-object my-bucket hello.txt -o /path/to/hello.txt
 
 
-### set-cors-policy and get-cors-policy
+## set-cors-policy and get-cors-policy
 
 You can set the [CORS policy](https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html) for a bucket using the `set-cors-policy` command. S3 CORS policies are set at the bucket level - they cannot be set for individual items.
 

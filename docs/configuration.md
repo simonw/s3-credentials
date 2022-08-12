@@ -1,4 +1,4 @@
-## Configuration
+# Configuration
 
 This tool uses [boto3](https://boto3.amazonaws.com/) under the hood which supports [a number of different ways](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html) of providing your AWS credentials.
 
@@ -8,7 +8,7 @@ You can set the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment vari
 
 You can also use the `--access-key=`, `--secret-key=`, `--session-token` and `--auth` options documented below.
 
-### Common command options
+## Common command options
 
 All of the `s3-credentials` commands also accept the following options for authenticating against AWS:
 
