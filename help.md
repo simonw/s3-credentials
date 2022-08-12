@@ -75,6 +75,8 @@ Options:
   --prefix TEXT                   Restrict to keys starting with this prefix
   --public                        Make the created bucket public: anyone will be
                                   able to download files if they know their name
+  --website                       Configure bucket to act as a website, using
+                                  index.html and error.html
   --read-only                     Only allow reading from the bucket
   --write-only                    Only allow writing to the bucket
   --policy POLICY                 Path to a policy.json file, or literal JSON
