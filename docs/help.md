@@ -1,4 +1,4 @@
-# s3-credentials command help
+# Command help
 
 This page shows the `--help` output for all of the `s3-credentials` commands.
 
@@ -15,11 +15,11 @@ for command in [""] + commands:
     result = runner.invoke(cli.cli, ([command] if command else []) + ["--help"])
     help = result.output.replace("Usage: cli", "Usage: s3-credentials")
     cog.out(
-        "### s3-credentials {} --help\n\n```\n{}\n```\n".format(command, help.strip())
+        "## s3-credentials {} --help\n\n```\n{}\n```\n".format(command, help.strip())
     )
 
 ]]] -->
-### s3-credentials  --help
+## s3-credentials  --help
 
 ```
 Usage: s3-credentials [OPTIONS] COMMAND [ARGS]...
@@ -45,7 +45,7 @@ Commands:
   set-cors-policy     Set CORS policy for a bucket
   whoami              Identify currently authenticated user
 ```
-### s3-credentials create --help
+## s3-credentials create --help
 
 ```
 Usage: s3-credentials create [OPTIONS] BUCKETS...
@@ -98,7 +98,7 @@ Options:
   -a, --auth FILENAME             Path to JSON/INI file containing credentials
   --help                          Show this message and exit.
 ```
-### s3-credentials delete-user --help
+## s3-credentials delete-user --help
 
 ```
 Usage: s3-credentials delete-user [OPTIONS] USERNAMES...
@@ -115,7 +115,7 @@ Options:
   -a, --auth FILENAME   Path to JSON/INI file containing credentials
   --help                Show this message and exit.
 ```
-### s3-credentials get-cors-policy --help
+## s3-credentials get-cors-policy --help
 
 ```
 Usage: s3-credentials get-cors-policy [OPTIONS] BUCKET
@@ -134,7 +134,7 @@ Options:
   -a, --auth FILENAME   Path to JSON/INI file containing credentials
   --help                Show this message and exit.
 ```
-### s3-credentials get-object --help
+## s3-credentials get-object --help
 
 ```
 Usage: s3-credentials get-object [OPTIONS] BUCKET KEY
@@ -158,7 +158,7 @@ Options:
   -a, --auth FILENAME   Path to JSON/INI file containing credentials
   --help                Show this message and exit.
 ```
-### s3-credentials list-bucket --help
+## s3-credentials list-bucket --help
 
 ```
 Usage: s3-credentials list-bucket [OPTIONS] BUCKET
@@ -185,7 +185,7 @@ Options:
   -a, --auth FILENAME   Path to JSON/INI file containing credentials
   --help                Show this message and exit.
 ```
-### s3-credentials list-buckets --help
+## s3-credentials list-buckets --help
 
 ```
 Usage: s3-credentials list-buckets [OPTIONS] [BUCKETS]...
@@ -216,7 +216,7 @@ Options:
   -a, --auth FILENAME   Path to JSON/INI file containing credentials
   --help                Show this message and exit.
 ```
-### s3-credentials list-roles --help
+## s3-credentials list-roles --help
 
 ```
 Usage: s3-credentials list-roles [OPTIONS] [ROLE_NAMES]...
@@ -247,7 +247,7 @@ Options:
   -a, --auth FILENAME   Path to JSON/INI file containing credentials
   --help                Show this message and exit.
 ```
-### s3-credentials list-user-policies --help
+## s3-credentials list-user-policies --help
 
 ```
 Usage: s3-credentials list-user-policies [OPTIONS] [USERNAMES]...
@@ -266,7 +266,7 @@ Options:
   -a, --auth FILENAME   Path to JSON/INI file containing credentials
   --help                Show this message and exit.
 ```
-### s3-credentials list-users --help
+## s3-credentials list-users --help
 
 ```
 Usage: s3-credentials list-users [OPTIONS]
@@ -290,7 +290,7 @@ Options:
   -a, --auth FILENAME   Path to JSON/INI file containing credentials
   --help                Show this message and exit.
 ```
-### s3-credentials policy --help
+## s3-credentials policy --help
 
 ```
 Usage: s3-credentials policy [OPTIONS] BUCKETS...
@@ -311,7 +311,7 @@ Options:
   --public-bucket        Bucket policy for allowing public access
   --help                 Show this message and exit.
 ```
-### s3-credentials put-object --help
+## s3-credentials put-object --help
 
 ```
 Usage: s3-credentials put-object [OPTIONS] BUCKET KEY PATH
@@ -337,7 +337,7 @@ Options:
   -a, --auth FILENAME   Path to JSON/INI file containing credentials
   --help                Show this message and exit.
 ```
-### s3-credentials set-cors-policy --help
+## s3-credentials set-cors-policy --help
 
 ```
 Usage: s3-credentials set-cors-policy [OPTIONS] BUCKET
@@ -369,7 +369,7 @@ Options:
   -a, --auth FILENAME        Path to JSON/INI file containing credentials
   --help                     Show this message and exit.
 ```
-### s3-credentials whoami --help
+## s3-credentials whoami --help
 
 ```
 Usage: s3-credentials whoami [OPTIONS]

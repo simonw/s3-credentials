@@ -29,6 +29,7 @@ configuration
 create
 other-commands
 policy-documents
+help
 contributing
 ```
 
