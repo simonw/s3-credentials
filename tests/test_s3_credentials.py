@@ -997,6 +997,15 @@ def test_list_bucket(stub_s3, options, expected):
         assert result.output == expected
 
 
+def test_list_bucket_empty(stub_s3):
+    stub_s3.add_response("list_objects_v2", {})
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        result = runner.invoke(cli, ["list-bucket", "test-bucket"])
+        assert result.exit_code == 0
+        assert result.output == "[]\n"
+
+
 @pytest.fixture
 def stub_iam_for_list_roles(stub_iam):
     stub_iam.add_response(

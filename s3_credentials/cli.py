@@ -1169,7 +1169,7 @@ def stream_indented_json(iterator, indent=2):
 def paginate(service, method, list_key, **kwargs):
     paginator = service.get_paginator(method)
     for response in paginator.paginate(**kwargs):
-        yield from response[list_key]
+        yield from response.get(list_key) or []
 
 
 def fix_json(row):
