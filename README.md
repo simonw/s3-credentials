@@ -90,6 +90,7 @@ The `create` command has a number of options:
 - `-c, --create-bucket`: Create the buckets if they do not exist. Without this any missing buckets will be treated as an error.
 - `--prefix my-prefix/`: Credentials should only allow access to keys in the S3 bucket that start with this prefix.
 - `--public`: When creating a bucket, set it so that any file uploaded to that bucket can be downloaded by anyone who knows its filename. This attaches the [public bucket policy](#public-bucket-policy) shown below.
+- `--website`: Sets the bucket to public and configures it to act as a website, with `index.html` treated as an index page and `error.html` used to display custom errors. The URL for the website will be `http://<bucket-name>.s3-website.<region>.amazonaws.com/` - the region defaults to `us-east-1` unless you specify a `--bucket-region`.
 - `--read-only`: The user should only be allowed to read files from the bucket.
 - `--write-only`: The user should only be allowed to write files to the bucket, but not read them. This can be useful for logging and backups.
 - `--policy filepath-or-string`: A custom policy document (as a file path, literal JSON string or `-` for standard input) - see below.

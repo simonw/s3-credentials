@@ -252,6 +252,11 @@ def policy(buckets, read_only, write_only, prefix, extra_statements, public_buck
     help="Make the created bucket public: anyone will be able to download files if they know their name",
     is_flag=True,
 )
+@click.option(
+    "--website",
+    help="Configure bucket to act as a website, using index.html and error.html",
+    is_flag=True,
+)
 @click.option("--read-only", help="Only allow reading from the bucket", is_flag=True)
 @click.option("--write-only", help="Only allow writing to the bucket", is_flag=True)
 @click.option(
@@ -286,6 +291,7 @@ def create(
     create_bucket,
     prefix,
     public,
+    website,
     read_only,
     write_only,
     policy,
@@ -330,6 +336,9 @@ def create(
 
     if not user_permissions_boundary and (policy or extra_statements):
         user_permissions_boundary = "none"
+
+    if website:
+        public = True
 
     s3 = None
     iam = None
@@ -376,6 +385,10 @@ def create(
                     if bucket_policy:
                         click.echo("... then attach the following bucket policy to it:")
                         click.echo(json.dumps(bucket_policy, indent=4))
+                    if website:
+                        click.echo(
+                            "... then configure index.html and error.html website settings"
+                        )
                 else:
                     s3.create_bucket(Bucket=bucket, **kwargs)
                     info = "Created bucket: {}".format(bucket)
@@ -388,6 +401,18 @@ def create(
                             Bucket=bucket, Policy=json.dumps(bucket_policy)
                         )
                         log("Attached bucket policy allowing public access")
+                    if website:
+                        s3.put_bucket_website(
+                            Bucket=bucket,
+                            WebsiteConfiguration={
+                                "ErrorDocument": {"Key": "error.html"},
+                                "IndexDocument": {"Suffix": "index.html"},
+                            },
+                        )
+                        log(
+                            "Configured website: IndexDocument=index.html, ErrorDocument=error.html"
+                        )
+
     # At this point the buckets definitely exist - create the inline policy for assume_role()
     assume_role_policy = {}
     if policy:
