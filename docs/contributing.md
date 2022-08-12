@@ -1,6 +1,6 @@
 # Contributing
 
-To contribute to this tool, first checkout the code. Then create a new virtual environment:
+To contribute to this tool, first checkout [the code](https://github.com/simonw/s3-credentials). Then create a new virtual environment:
 
     cd s3-credentials
     python -m venv venv
