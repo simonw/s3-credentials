@@ -261,6 +261,7 @@ Using `--details` adds three additional API calls for each bucket, so it is advi
   {
     "Name": "simonw-test-public-website-bucket",
     "CreationDate": "2021-11-08 22:53:30+00:00",
+    "region": "us-east-1",
     "bucket_acl": {
       "Owner": {
         "DisplayName": "simon",
@@ -284,7 +285,8 @@ Using `--details` adds three additional API calls for each bucket, so it is advi
       },
       "ErrorDocument": {
         "Key": "error.html"
-      }
+      },
+      "url": "http://simonw-test-public-website-bucket.s3-website.us-east-1.amazonaws.com/"
     }
   }
 ]

@@ -216,6 +216,12 @@ def test_list_buckets_details(stub_s3):
         },
     )
     stub_s3.add_response(
+        "get_bucket_location",
+        {
+            "LocationConstraint": "us-west-2",
+        },
+    )
+    stub_s3.add_response(
         "get_public_access_block",
         {
             "PublicAccessBlockConfiguration": {
@@ -242,6 +248,7 @@ def test_list_buckets_details(stub_s3):
             "  {\n"
             '    "Name": "bucket-one",\n'
             '    "CreationDate": "2020-01-01 00:00:00+00:00",\n'
+            '    "region": "us-west-2",\n'
             '    "bucket_acl": {\n'
             '      "Owner": {\n'
             '        "DisplayName": "swillison",\n'
@@ -270,7 +277,8 @@ def test_list_buckets_details(stub_s3):
             "      },\n"
             '      "ErrorDocument": {\n'
             '        "Key": "error.html"\n'
-            "      }\n"
+            "      },\n"
+            '      "url": "http://bucket-one.s3-website.us-west-2.amazonaws.com/"\n'
             "    }\n"
             "  }\n"
             "]\n"

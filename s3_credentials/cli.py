@@ -730,6 +730,12 @@ def list_buckets(buckets, details, nl, csv, tsv, **boto_options):
                     ).items()
                     if key != "ResponseMetadata"
                 )
+                region = s3.get_bucket_location(Bucket=bucket["Name"])[
+                    "LocationConstraint"
+                ]
+                if region is None:
+                    # "Buckets in Region us-east-1 have a LocationConstraint of null"
+                    region = "us-east-1"
                 try:
                     pab = s3.get_public_access_block(
                         Bucket=bucket["Name"],
@@ -744,8 +750,14 @@ def list_buckets(buckets, details, nl, csv, tsv, **boto_options):
                         ).items()
                         if key != "ResponseMetadata"
                     )
+                    bucket_website[
+                        "url"
+                    ] = "http://{}.s3-website.{}.amazonaws.com/".format(
+                        bucket["Name"], region
+                    )
                 except s3.exceptions.ClientError:
                     bucket_website = None
+                bucket["region"] = region
                 bucket["bucket_acl"] = bucket_acl
                 bucket["public_access_block"] = pab
                 bucket["bucket_website"] = bucket_website
