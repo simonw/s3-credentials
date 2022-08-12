@@ -26,6 +26,8 @@ Usage: s3-credentials [OPTIONS] COMMAND [ARGS]...
 
   A tool for creating credentials for accessing S3 buckets
 
+  Documentation: https://s3-credentials.readthedocs.io/
+
 Options:
   --version  Show the version and exit.
   --help     Show this message and exit.
