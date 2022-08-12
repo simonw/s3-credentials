@@ -268,6 +268,8 @@ cog.out(
 ```
 <!-- [[[end]]] -->
 
+(public_bucket_policy)=
+
 ### public bucket policy
 
 Buckets created using the `--public` option will have the following bucket policy attached to them:

@@ -1,4 +1,4 @@
-## Usage
+## Creating S3 credentials
 
 The `s3-credentials create` command is the core feature of this tool. Pass it one or more S3 bucket names, specify a policy (read-write, read-only or write-only) and it will return AWS credentials that can be used to access those buckets.
 
@@ -58,7 +58,7 @@ The `create` command has a number of options:
 - `--username TEXT`: The username to use for the user that is created by the command (or the username of an existing user if you do not want to create a new one). If ommitted a default such as `s3.read-write.static.niche-museums.com` will be used.
 - `-c, --create-bucket`: Create the buckets if they do not exist. Without this any missing buckets will be treated as an error.
 - `--prefix my-prefix/`: Credentials should only allow access to keys in the S3 bucket that start with this prefix.
-- `--public`: When creating a bucket, set it so that any file uploaded to that bucket can be downloaded by anyone who knows its filename. This attaches the [public bucket policy](#public-bucket-policy) shown below.
+- `--public`: When creating a bucket, set it so that any file uploaded to that bucket can be downloaded by anyone who knows its filename. This attaches the {ref}`public_bucket_policy`.
 - `--website`: Sets the bucket to public and configures it to act as a website, with `index.html` treated as an index page and `error.html` used to display custom errors. The URL for the website will be `http://<bucket-name>.s3-website.<region>.amazonaws.com/` - the region defaults to `us-east-1` unless you specify a `--bucket-region`.
 - `--read-only`: The user should only be allowed to read files from the bucket.
 - `--write-only`: The user should only be allowed to write files to the bucket, but not read them. This can be useful for logging and backups.
@@ -91,7 +91,7 @@ You can run the `create` command with the `--dry-run` option to see a summary of
 
 ### Using a custom policy
 
-The policy documents applied by this tool [are listed below](https://github.com/simonw/s3-credentials/blob/main/README.md#policy-documents).
+The policy documents applied by this tool [are listed here](policy-documents.md).
 
 If you want to use a custom policy document you can do so using the `--policy` option.
 

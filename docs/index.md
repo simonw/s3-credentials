@@ -19,17 +19,18 @@ Install this tool using `pip`:
 
     $ pip install s3-credentials
 
+## Documentation
+
 ```{toctree}
 ---
 maxdepth: 3
 ---
 configuration
-usage
+create
 other-commands
 policy-documents
 contributing
 ```
-
 
 ## Tips
 
