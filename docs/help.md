@@ -37,6 +37,7 @@ Commands:
   delete-user         Delete specified users, their access keys and their...
   get-cors-policy     Get CORS policy for a bucket
   get-object          Download an object from an S3 bucket
+  get-objects         Download multiple objects from an S3 bucket
   list-bucket         List contents of bucket
   list-buckets        List buckets
   list-roles          List roles
@@ -159,6 +160,39 @@ Options:
   --endpoint-url TEXT   Custom endpoint URL
   -a, --auth FILENAME   Path to JSON/INI file containing credentials
   --help                Show this message and exit.
+```
+## s3-credentials get-objects --help
+
+```
+Usage: s3-credentials get-objects [OPTIONS] BUCKET [KEYS]...
+
+  Download multiple objects from an S3 bucket
+
+  To download everything, run:
+
+      s3-credentials get-objects my-bucket
+
+  Files will be saved to a directory called my-bucket. Use -o dirname to save to
+  a different directory.
+
+  To download specific keys, list them:
+
+      s3-credentials get-objects my-bucket one.txt path/two.txt
+
+  To download files matching a glob-style pattern, use:
+
+      s3-credentials get-objects my-bucket --pattern '*/*.js'
+
+Options:
+  -o, --output DIRECTORY  Write to this directory instead of one matching the
+                          bucket name
+  -p, --pattern TEXT      Glob patterns for files to download, e.g. '*/*.js'
+  --access-key TEXT       AWS access key ID
+  --secret-key TEXT       AWS secret access key
+  --session-token TEXT    AWS session token
+  --endpoint-url TEXT     Custom endpoint URL
+  -a, --auth FILENAME     Path to JSON/INI file containing credentials
+  --help                  Show this message and exit.
 ```
 ## s3-credentials list-bucket --help
 
