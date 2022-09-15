@@ -992,12 +992,97 @@ def put_object(bucket, key, path, content_type, silent, **boto_options):
         extra_args["ContentType"] = content_type
     if not silent:
         # Show progress bar
-        with click.progressbar(length=size, label="Uploading") as bar:
+        with click.progressbar(length=size, label="Uploading", file=sys.stderr) as bar:
             s3.upload_fileobj(
                 fp, bucket, key, Callback=bar.update, ExtraArgs=extra_args
             )
     else:
         s3.upload_fileobj(fp, bucket, key, ExtraArgs=extra_args)
+
+
+@cli.command()
+@click.argument("bucket")
+@click.argument(
+    "objects",
+    nargs=-1,
+    required=True,
+)
+@click.option(
+    "--prefix",
+    help="Prefix to add to the files within the bucket",
+)
+@click.option("silent", "-s", "--silent", is_flag=True, help="Don't show progress bar")
+@click.option("--dry-run", help="Show steps without executing them", is_flag=True)
+@common_boto3_options
+def put_objects(bucket, objects, prefix, silent, dry_run, **boto_options):
+    """
+    Upload multiple objects to an S3 bucket
+
+    Pass one or more files to upload them:
+
+        s3-credentials put-objects my-bucket one.txt two.txt
+
+    These will be saved to the root of the bucket. To save to a different location
+    use the --prefix option:
+
+        s3-credentials put-objects my-bucket one.txt two.txt --prefix my-folder
+
+    This will upload them my-folder/one.txt and my-folder/two.txt.
+
+    If you pass a directory it will be uploaded recursively:
+
+        s3-credentials put-objects my-bucket my-folder
+
+    This will create keys in my-folder/... in the S3 bucket.
+
+    To upload all files in a folder to the root of the bucket instead use this:
+
+        s3-credentials put-objects my-bucket my-folder/*
+    """
+    s3 = make_client("s3", **boto_options)
+    if prefix and not prefix.endswith("/"):
+        prefix = prefix + "/"
+    total_size = 0
+    # Figure out files to upload and their keys
+    paths = []  # (path, key)
+    for obj in objects:
+        path = pathlib.Path(obj)
+        if path.is_file():
+            # Just use the filename as the key
+            paths.append((path, path.name))
+        elif path.is_dir():
+            # Key is the relative path within the directory
+            for p in path.glob("**/*"):
+                if p.is_file():
+                    paths.append((p, str(p.relative_to(path.parent))))
+
+    def upload(path, key, callback=None):
+        final_key = key
+        if prefix:
+            final_key = prefix + key
+        if dry_run:
+            click.echo("{} => s3://{}/{}".format(path, bucket, final_key))
+        else:
+            s3.upload_file(
+                Filename=str(path), Bucket=bucket, Key=final_key, Callback=callback
+            )
+
+    if not silent and not dry_run:
+        total_size = sum(p[0].stat().st_size for p in paths)
+        with click.progressbar(
+            length=total_size,
+            label="Uploading {} ({} file{})".format(
+                format_bytes(total_size),
+                len(paths),
+                "s" if len(paths) != 1 else "",
+            ),
+            file=sys.stderr,
+        ) as bar:
+            for path, key in paths:
+                upload(path, key, bar.update)
+    else:
+        for path, key in paths:
+            upload(path, key)
 
 
 @cli.command()
@@ -1131,6 +1216,7 @@ def get_objects(bucket, keys, output, patterns, silent, **boto_options):
                 len(key_sizes),
                 "s" if len(key_sizes) != 1 else "",
             ),
+            file=sys.stderr,
         ) as bar:
             for key in keys_to_download:
                 download(key, bar.update)

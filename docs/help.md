@@ -45,6 +45,7 @@ Commands:
   list-users          List all users for this account
   policy              Output generated JSON policy for one or more buckets
   put-object          Upload an object to an S3 bucket
+  put-objects         Upload multiple objects to an S3 bucket
   set-cors-policy     Set CORS policy for a bucket
   whoami              Identify currently authenticated user
 ```
@@ -367,6 +368,45 @@ Options:
   --content-type TEXT   Content-Type to use (default is auto-detected based on
                         file extension)
   -s, --silent          Don't show progress bar
+  --access-key TEXT     AWS access key ID
+  --secret-key TEXT     AWS secret access key
+  --session-token TEXT  AWS session token
+  --endpoint-url TEXT   Custom endpoint URL
+  -a, --auth FILENAME   Path to JSON/INI file containing credentials
+  --help                Show this message and exit.
+```
+## s3-credentials put-objects --help
+
+```
+Usage: s3-credentials put-objects [OPTIONS] BUCKET OBJECTS...
+
+  Upload multiple objects to an S3 bucket
+
+  Pass one or more files to upload them:
+
+      s3-credentials put-objects my-bucket one.txt two.txt
+
+  These will be saved to the root of the bucket. To save to a different location
+  use the --prefix option:
+
+      s3-credentials put-objects my-bucket one.txt two.txt --prefix my-folder
+
+  This will upload them my-folder/one.txt and my-folder/two.txt.
+
+  If you pass a directory it will be uploaded recursively:
+
+      s3-credentials put-objects my-bucket my-folder
+
+  This will create keys in my-folder/... in the S3 bucket.
+
+  To upload all files in a folder to the root of the bucket instead use this:
+
+      s3-credentials put-objects my-bucket my-folder/*
+
+Options:
+  --prefix TEXT         Prefix to add to the files within the bucket
+  -s, --silent          Don't show progress bar
+  --dry-run             Show steps without executing them
   --access-key TEXT     AWS access key ID
   --secret-key TEXT     AWS secret access key
   --session-token TEXT  AWS session token

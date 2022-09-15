@@ -359,6 +359,46 @@ The `Content-Type` on the uploaded object will be automatically set based on the
     echo "<h1>Hello World</h1>" | \
       s3-credentials put-object my-bucket hello.html - --content-type "text/html"
 
+## put-objects
+
+`s3-credentials put-objects` can be used to upload more than one file at once.
+
+Pass one or more filenames to upload them to the root of your bucket:
+
+    s3-credentials put-objects my-bucket one.txt two.txt three.txt
+
+Use `--prefix my-prefix` to upload them to the specified prefix:
+
+    s3-credentials put-objects my-bucket one.txt --prefix my-prefix
+
+This will upload the file to `my-prefix/one.txt`.
+
+Pass one or more directories to upload the contents of those directories.
+`.` uploads everything in your current directory:
+
+    s3-credentials put-objects my-bucket .
+
+Passing directory names will upload the directory and all of its contents:
+
+    s3-credentials put-objects my-bucket my-directory
+
+If `my-directory` had files `one.txt` and `two.txt` in it, the result would be:
+
+    my-directory/one.txt
+    my-directory/two.txt
+
+A progress bar will be shown by default. Use `-s` or `--silent` to hide it.
+
+Add `--dry-run` to get a preview of what would be uploaded without uploading anything:
+
+    s3-credentials put-objects my-bucket . --dry-run
+
+```
+out/IMG_1254.jpeg => s3://my-bucket/out/IMG_1254.jpeg
+out/alverstone-mead-2.jpg => s3://my-bucket/out/alverstone-mead-2.jpg
+out/alverstone-mead-1.jpg => s3://my-bucket/out/alverstone-mead-1.jpg
+```
+
 ## get-object
 
 To download a file from a bucket use `s3-credentials get-object`:

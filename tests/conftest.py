@@ -54,6 +54,11 @@ def moto_s3(aws_credentials):
     with mock_s3():
         client = boto3.client("s3", region_name="us-east-1")
         client.create_bucket(Bucket="my-bucket")
-        for key in ("one.txt", "directory/two.txt", "directory/three.json"):
-            client.put_object(Bucket="my-bucket", Key=key, Body=key.encode("utf-8"))
         yield client
+
+
+@pytest.fixture(scope="function")
+def moto_s3_populated(moto_s3):
+    for key in ("one.txt", "directory/two.txt", "directory/three.json"):
+        moto_s3.put_object(Bucket="my-bucket", Key=key, Body=key.encode("utf-8"))
+    yield moto_s3

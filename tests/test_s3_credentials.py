@@ -1,5 +1,6 @@
 import botocore
 from click.testing import CliRunner
+import s3_credentials
 from s3_credentials.cli import cli
 import json
 import os
@@ -1137,7 +1138,7 @@ def test_list_roles_csv(stub_iam_for_list_roles):
     ),
 )
 @pytest.mark.parametrize("output", (None, "out"))
-def test_get_objects(moto_s3, output, files, patterns, expected, error):
+def test_get_objects(moto_s3_populated, output, files, patterns, expected, error):
     runner = CliRunner()
     with runner.isolated_filesystem():
         args = ["get-objects", "my-bucket"] + (files or [])
@@ -1161,3 +1162,51 @@ def test_get_objects(moto_s3, output, files, patterns, expected, error):
         assert all_files == expected
         if error:
             assert error in result.output
+
+
+@pytest.mark.parametrize(
+    "args,expected,expected_output",
+    (
+        (["."], {"one.txt", "directory/two.txt", "directory/three.json"}, None),
+        (["one.txt"], {"one.txt"}, None),
+        (["directory"], {"directory/two.txt", "directory/three.json"}, None),
+        (
+            ["directory", "--prefix", "o"],
+            {"o/directory/two.txt", "o/directory/three.json"},
+            None,
+        ),
+        # --dry-run tests
+        (
+            ["directory", "--prefix", "o", "--dry-run"],
+            None,
+            (
+                "directory/two.txt => s3://my-bucket/o/directory/two.txt\n"
+                "directory/three.json => s3://my-bucket/o/directory/three.json\n"
+            ),
+        ),
+        (
+            [".", "--prefix", "p"],
+            {"p/one.txt", "p/directory/two.txt", "p/directory/three.json"},
+            None,
+        ),
+    ),
+)
+def test_put_objects(moto_s3, args, expected, expected_output):
+    runner = CliRunner(mix_stderr=False)
+    with runner.isolated_filesystem():
+        # Create files
+        pathlib.Path("one.txt").write_text("one")
+        pathlib.Path("directory").mkdir()
+        pathlib.Path("directory/two.txt").write_text("two")
+        pathlib.Path("directory/three.json").write_text('{"three": 3}')
+        result = runner.invoke(
+            cli, ["put-objects", "my-bucket"] + args, catch_exceptions=False
+        )
+        assert result.exit_code == 0, result.output
+        assert result.output == (expected_output or "")
+        # Check files were uploaded
+        keys = {
+            obj["Key"]
+            for obj in moto_s3.list_objects(Bucket="my-bucket").get("Contents") or []
+        }
+        assert keys == (expected or set())
