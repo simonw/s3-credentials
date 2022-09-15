@@ -187,6 +187,7 @@ Options:
   -o, --output DIRECTORY  Write to this directory instead of one matching the
                           bucket name
   -p, --pattern TEXT      Glob patterns for files to download, e.g. '*/*.js'
+  -s, --silent            Don't show progress bar
   --access-key TEXT       AWS access key ID
   --secret-key TEXT       AWS secret access key
   --session-token TEXT    AWS session token

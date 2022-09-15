@@ -393,6 +393,8 @@ You can pass one or more `--pattern` or `-p` options to download files matching 
 
 Here the `*` wildcard will match any sequence of characters, including `/`. `?` will match a single character.
 
+A progress bar will be shown by default. Use `-s` or `--silent` to hide it.
+
 ## set-cors-policy and get-cors-policy
 
 You can set the [CORS policy](https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html) for a bucket using the `set-cors-policy` command. S3 CORS policies are set at the bucket level - they cannot be set for individual items.
