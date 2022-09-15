@@ -2,6 +2,8 @@ import botocore
 from click.testing import CliRunner
 from s3_credentials.cli import cli
 import json
+import os
+import pathlib
 import pytest
 from unittest.mock import call, Mock
 from botocore.stub import Stubber
@@ -1102,3 +1104,60 @@ def test_list_roles_csv(stub_iam_for_list_roles):
         "  }\n"
         ']"\n'
     )
+
+
+@pytest.mark.parametrize(
+    "files,patterns,expected,error",
+    (
+        # Without arguments return everything
+        (None, None, {"one.txt", "directory/two.txt", "directory/three.json"}, None),
+        # Positional arguments returns files
+        (["one.txt"], None, {"one.txt"}, None),
+        (["directory/two.txt"], None, {"directory/two.txt"}, None),
+        (["one.txt"], None, {"one.txt"}, None),
+        (
+            ["directory/two.txt", "directory/three.json"],
+            None,
+            {"directory/two.txt", "directory/three.json"},
+            None,
+        ),
+        # Invalid positional argument downloads file and shows error
+        (
+            ["directory/two.txt", "directory/bad.json"],
+            None,
+            {"directory/two.txt"},
+            "Not found: directory/bad.json",
+        ),
+        # --pattern returns files matching pattern
+        (None, ["*e.txt"], {"one.txt"}, None),
+        (None, ["*e.txt", "invalid-pattern"], {"one.txt"}, None),
+        (None, ["directory/*"], {"directory/two.txt", "directory/three.json"}, None),
+        # positional and patterns can be combined
+        (["one.txt"], ["directory/*.json"], {"one.txt", "directory/three.json"}, None),
+    ),
+)
+@pytest.mark.parametrize("output", (None, "out"))
+def test_get_objects(moto_s3, output, files, patterns, expected, error):
+    runner = CliRunner()
+    with runner.isolated_filesystem():
+        args = ["get-objects", "my-bucket"] + (files or [])
+        if patterns:
+            for pattern in patterns:
+                args.extend(["--pattern", pattern])
+        if output:
+            args.extend(["--output", output])
+        result = runner.invoke(cli, args, catch_exceptions=False)
+        if error:
+            assert result.exit_code != 0
+        else:
+            assert result.exit_code == 0
+        # Build list of all files in output directory using glob
+        output_dir = pathlib.Path(output or ".")
+        all_files = {
+            str(p.relative_to(output_dir))
+            for p in output_dir.glob("**/*")
+            if p.is_file()
+        }
+        assert all_files == expected
+        if error:
+            assert error in result.output

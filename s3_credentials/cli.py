@@ -4,11 +4,13 @@ import botocore
 import click
 import configparser
 from csv import DictWriter
+import fnmatch
 import io
 import itertools
 import json
 import mimetypes
 import os
+import pathlib
 import re
 import sys
 import textwrap
@@ -1027,6 +1029,84 @@ def get_object(bucket, key, output, **boto_options):
     else:
         fp = click.open_file(output, "wb")
     s3.download_fileobj(bucket, key, fp)
+
+
+@cli.command()
+@click.argument("bucket")
+@click.argument(
+    "keys",
+    nargs=-1,
+    required=False,
+)
+@click.option(
+    "output",
+    "-o",
+    "--output",
+    type=click.Path(file_okay=False, dir_okay=True, writable=True, allow_dash=False),
+    help="Write to this directory instead of one matching the bucket name",
+)
+@click.option(
+    "patterns",
+    "-p",
+    "--pattern",
+    multiple=True,
+    help="Glob patterns for files to download, e.g. '*/*.js'",
+)
+@common_boto3_options
+def get_objects(bucket, keys, output, patterns, **boto_options):
+    """
+    Download multiple objects from an S3 bucket
+
+    To download everything, run:
+
+        s3-credentials get-objects my-bucket
+
+    Files will be saved to a directory called my-bucket. Use -o dirname to save to a
+    different directory.
+
+    To download specific keys, list them:
+
+        s3-credentials get-objects my-bucket one.txt path/two.txt
+
+    To download files matching a glob-style pattern, use:
+
+        s3-credentials get-objects my-bucket --pattern '*/*.js'
+    """
+    s3 = make_client("s3", **boto_options)
+
+    # If user specified keys and no patterns, use the keys they specified
+    keys_to_download = list(keys)
+
+    if (not keys) or patterns:
+        # Fetch all keys, then filter them if --pattern
+        all_keys = [
+            obj["Key"]
+            for obj in paginate(s3, "list_objects_v2", "Contents", Bucket=bucket)
+        ]
+        if patterns:
+            filtered = []
+            for pattern in patterns:
+                filtered.extend(fnmatch.filter(all_keys, pattern))
+            keys_to_download.extend(filtered)
+        else:
+            keys_to_download.extend(all_keys)
+
+    output_dir = pathlib.Path(output or ".")
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True)
+
+    errors = []
+    for key in keys_to_download:
+        # Ensure directory for key exists
+        key_dir = (output_dir / key).parent
+        if not key_dir.exists():
+            key_dir.mkdir(parents=True)
+        try:
+            s3.download_file(bucket, key, str(output_dir / key))
+        except botocore.exceptions.ClientError as e:
+            errors.append("Not found: {}".format(key))
+    if errors:
+        raise click.ClickException("\n".join(errors))
 
 
 @cli.command()

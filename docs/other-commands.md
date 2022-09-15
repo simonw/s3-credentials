@@ -369,6 +369,29 @@ This defaults to outputting the downloaded file to the terminal. You can instead
 
     s3-credentials get-object my-bucket hello.txt -o /path/to/hello.txt
 
+## get-objects
+
+`s3-credentials get-objects` can be used to download multiple files from a bucket at once.
+
+Without extra arguments, this downloads everything:
+
+    s3-credentials get-objects my-bucket
+
+Files will be written to the current directory by default, preserving their directory structure from the bucket.
+
+To write to a different directory use `--output` or `-o`:
+
+    s3-credentials get-objects my-bucket -o /path/to/output
+
+To download multiple specific files, add them as arguments to the command:
+
+    s3-credentials get-objects my-bucket one.txt two.txt path/to/three.txt
+
+You can pass one or more `--pattern` or `-p` options to download files matching a specific pattern:
+
+    s3-credentials get-objects my-bucket -p "*.txt" -p "static/*.css"
+
+Here the `*` wildcard will match any sequence of characters, including `/`. `?` will match a single character.
 
 ## set-cors-policy and get-cors-policy
 

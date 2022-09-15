@@ -1,6 +1,8 @@
 import boto3
 import logging
+import os
 import pytest
+from moto import mock_s3
 
 
 def pytest_addoption(parser):
@@ -35,3 +37,23 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if "integration" in item.keywords:
             item.add_marker(skip_slow)
+
+
+@pytest.fixture(scope="function")
+def aws_credentials():
+    """Mocked AWS Credentials for moto."""
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"
+    os.environ["AWS_SESSION_TOKEN"] = "testing"
+    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+
+
+@pytest.fixture(scope="function")
+def moto_s3(aws_credentials):
+    with mock_s3():
+        client = boto3.client("s3", region_name="us-east-1")
+        client.create_bucket(Bucket="my-bucket")
+        for key in ("one.txt", "directory/two.txt", "directory/three.json"):
+            client.put_object(Bucket="my-bucket", Key=key, Body=key.encode("utf-8"))
+        yield client
