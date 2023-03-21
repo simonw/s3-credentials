@@ -4,7 +4,9 @@ This tool uses [boto3](https://boto3.amazonaws.com/) under the hood which suppor
 
 If you have an existing `~/.aws/config` or `~/.aws/credentials` file the tool will use that.
 
-You can set the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables before calling this tool.
+One way to create those files is using the `aws configure` command, available if you first run `pip install awscli`.
+
+Alternatively, you can set the `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables before calling this tool.
 
 You can also use the `--access-key=`, `--secret-key=`, `--session-token` and `--auth` options documented below.
 
