@@ -49,7 +49,7 @@ To see a list of all users that exist for your AWS account:
 
     s3-credentials list-users
 
-This will a pretty-printed array of JSON objects by default.
+This will return a pretty-printed array of JSON objects by default.
 
 Add `--nl` to collapse these to single lines as valid newline-delimited JSON.
 
