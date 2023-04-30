@@ -1,5 +1,12 @@
 # Other commands
 
+```{contents}
+---
+local:
+class: this-will-duplicate-information-and-it-is-still-useful-here
+---
+```
+
 ## policy
 
 You can use the `s3-credentials policy` command to generate the JSON policy document that would be used without applying it. The command takes one or more required bucket names and a subset of the options available on the `create` command:
@@ -398,6 +405,22 @@ out/IMG_1254.jpeg => s3://my-bucket/out/IMG_1254.jpeg
 out/alverstone-mead-2.jpg => s3://my-bucket/out/alverstone-mead-2.jpg
 out/alverstone-mead-1.jpg => s3://my-bucket/out/alverstone-mead-1.jpg
 ```
+
+## delete-objects
+
+`s3-credentials delete-objects` can be used to delete one or more keys from the bucket.
+
+Pass one or more keys to delete them:
+
+    s3-credentials delete-objects my-bucket one.txt two.txt three.txt
+
+Use `--prefix my-prefix` to delete all keys with the specified prefix:
+
+    s3-credentials delete-objects my-bucket --prefix my-prefix
+
+Pass `-d` or `--dry-run` to perform a dry-run of the deletion, which will list the keys that would be deleted without actually deleting them.
+
+    s3-credentials delete-objects my-bucket --prefix my-prefix --dry-run
 
 ## get-object
 
