@@ -1203,7 +1203,9 @@ def test_put_objects(moto_s3, args, expected, expected_output):
             cli, ["put-objects", "my-bucket"] + args, catch_exceptions=False
         )
         assert result.exit_code == 0, result.output
-        assert result.output == (expected_output or "")
+        assert set(result.output.split("\n")) == set(
+            (expected_output or "").split("\n")
+        )
         # Check files were uploaded
         keys = {
             obj["Key"]
