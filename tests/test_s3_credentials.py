@@ -1215,7 +1215,7 @@ def test_put_objects(moto_s3, args, expected, expected_output):
 @pytest.mark.parametrize(
     "args,expected,expected_error",
     (
-        ([], None, "Error: Specify one or more keys or use --prefix."),
+        ([], None, "Error: Specify one or more keys or use --prefix"),
         (["one.txt"], ["directory/two.txt", "directory/three.json"], None),
         (["one.txt", "directory/two.txt"], ["directory/three.json"], None),
         (["--prefix", "directory/"], ["one.txt"], None),
@@ -1229,7 +1229,7 @@ def test_delete_objects(moto_s3_populated, args, expected, expected_error):
         )
         if expected_error:
             assert result.exit_code != 0
-            assert expected_error in result.output
+            assert expected_error in result.stderr
         else:
             assert result.exit_code == 0, result.output
             # Check expected files are left in bucket

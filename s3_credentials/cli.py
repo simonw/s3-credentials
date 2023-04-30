@@ -1334,16 +1334,16 @@ def get_cors_policy(bucket, **boto_options):
 @click.argument(
     "keys",
     nargs=-1,
-    required=True,
 )
 @click.option(
     "--prefix",
     help="Delete everything with this prefix",
 )
-@click.option("silent", "-s", "--silent", is_flag=True, help="Don't show progress bar")
-@click.option("--dry-run", help="Show steps without executing them", is_flag=True)
+@click.option(
+    "silent", "-s", "--silent", is_flag=True, help="Don't show informational output"
+)
 @common_boto3_options
-def delete_objects(bucket, keys, prefix, silent, dry_run, **boto_options):
+def delete_objects(bucket, keys, prefix, silent, **boto_options):
     """
     Delete one or more object from an S3 bucket
 
@@ -1356,9 +1356,35 @@ def delete_objects(bucket, keys, prefix, silent, dry_run, **boto_options):
         s3-credentials delete-objects my-bucket --prefix my-folder/
     """
     s3 = make_client("s3", **boto_options)
+    print("keys", keys, "prefix", prefix)
+    if keys and prefix:
+        raise click.ClickException("Cannot pass both keys and --prefix")
+    if not keys and not prefix:
+        raise click.ClickException("Specify one or more keys or use --prefix")
     if prefix and not prefix.endswith("/"):
         prefix = prefix + "/"
-    raise NotImplementedError("Write the rest of this function")
+    if prefix:
+        # List all keys with this prefix
+        paginator = s3.get_paginator("list_objects_v2")
+        response_iterator = paginator.paginate(Bucket=bucket, Prefix=prefix)
+        keys = []
+        for response in response_iterator:
+            keys.extend([obj["Key"] for obj in response.get("Contents", [])])
+    if not silent:
+        click.echo(
+            "Deleting {} object{} from {}".format(
+                len(keys), "s" if len(keys) != 1 else "", bucket
+            ),
+            err=True,
+        )
+    for batch in batches(keys, 1000):
+        response = s3.delete_objects(
+            Bucket=bucket, Delete={"Objects": [{"Key": key} for key in batch]}
+        )
+        if response.get("Errors"):
+            click.echo(
+                "Errors deleting objects: {}".format(response["Errors"]), err=True
+            )
 
 
 def output(iterator, headers, nl, csv, tsv):
@@ -1429,3 +1455,7 @@ def format_bytes(size):
         size /= 1024
 
     return size
+
+
+def batches(all, batch_size):
+    return [all[i : i + batch_size] for i in range(0, len(all), batch_size)]
