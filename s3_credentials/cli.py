@@ -1329,6 +1329,38 @@ def get_cors_policy(bucket, **boto_options):
     click.echo(json.dumps(response["CORSRules"], indent=4, default=str))
 
 
+@cli.command()
+@click.argument("bucket")
+@click.argument(
+    "keys",
+    nargs=-1,
+    required=True,
+)
+@click.option(
+    "--prefix",
+    help="Delete everything with this prefix",
+)
+@click.option("silent", "-s", "--silent", is_flag=True, help="Don't show progress bar")
+@click.option("--dry-run", help="Show steps without executing them", is_flag=True)
+@common_boto3_options
+def delete_objects(bucket, keys, prefix, silent, dry_run, **boto_options):
+    """
+    Delete one or more object from an S3 bucket
+
+    Pass one or more keys to delete them:
+
+        s3-credentials delete-objects my-bucket one.txt two.txt
+
+    To delete all files matching a prefix, pass --prefix:
+
+        s3-credentials delete-objects my-bucket --prefix my-folder/
+    """
+    s3 = make_client("s3", **boto_options)
+    if prefix and not prefix.endswith("/"):
+        prefix = prefix + "/"
+    raise NotImplementedError("Write the rest of this function")
+
+
 def output(iterator, headers, nl, csv, tsv):
     if nl:
         for item in iterator:

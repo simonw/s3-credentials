@@ -1210,3 +1210,34 @@ def test_put_objects(moto_s3, args, expected, expected_output):
             for obj in moto_s3.list_objects(Bucket="my-bucket").get("Contents") or []
         }
         assert keys == (expected or set())
+
+
+@pytest.mark.parametrize(
+    "args,expected,expected_error",
+    (
+        ([], None, "Error: Specify one or more keys or use --prefix."),
+        (["one.txt"], ["directory/two.txt", "directory/three.json"], None),
+        (["one.txt", "directory/two.txt"], ["directory/three.json"], None),
+        (["--prefix", "directory/"], ["one.txt"], None),
+    ),
+)
+def test_delete_objects(moto_s3_populated, args, expected, expected_error):
+    runner = CliRunner(mix_stderr=False)
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, ["delete-objects", "my-bucket"] + args, catch_exceptions=False
+        )
+        if expected_error:
+            assert result.exit_code != 0
+            assert expected_error in result.output
+        else:
+            assert result.exit_code == 0, result.output
+            # Check expected files are left in bucket
+            keys = {
+                obj["Key"]
+                for obj in moto_s3_populated.list_objects(Bucket="my-bucket").get(
+                    "Contents"
+                )
+                or []
+            }
+            assert keys == set(expected)
