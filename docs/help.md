@@ -121,6 +121,7 @@ Usage: s3-credentials delete-objects [OPTIONS] BUCKET [KEYS]...
 Options:
   --prefix TEXT         Delete everything with this prefix
   -s, --silent          Don't show informational output
+  -d, --dry-run         Show keys that would be deleted without deleting them
   --access-key TEXT     AWS access key ID
   --secret-key TEXT     AWS secret access key
   --session-token TEXT  AWS session token

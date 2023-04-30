@@ -1342,8 +1342,15 @@ def get_cors_policy(bucket, **boto_options):
 @click.option(
     "silent", "-s", "--silent", is_flag=True, help="Don't show informational output"
 )
+@click.option(
+    "dry_run",
+    "-d",
+    "--dry-run",
+    is_flag=True,
+    help="Show keys that would be deleted without deleting them",
+)
 @common_boto3_options
-def delete_objects(bucket, keys, prefix, silent, **boto_options):
+def delete_objects(bucket, keys, prefix, silent, dry_run, **boto_options):
     """
     Delete one or more object from an S3 bucket
 
@@ -1374,6 +1381,11 @@ def delete_objects(bucket, keys, prefix, silent, **boto_options):
             ),
             err=True,
         )
+    if dry_run:
+        click.echo("The following keys would be deleted:")
+        for key in keys:
+            click.echo(key)
+        return
     for batch in batches(keys, 1000):
         response = s3.delete_objects(
             Bucket=bucket, Delete={"Objects": [{"Key": key} for key in batch]}

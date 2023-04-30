@@ -1248,3 +1248,31 @@ def test_delete_objects(moto_s3_populated, args, expected, expected_error):
                 or []
             }
             assert keys == set(expected)
+
+
+@pytest.mark.parametrize("arg", ("-d", "--dry-run"))
+def test_delete_objects_dry_run(moto_s3_populated, arg):
+    runner = CliRunner(mix_stderr=False)
+
+    def get_keys():
+        return {
+            obj["Key"]
+            for obj in moto_s3_populated.list_objects(Bucket="my-bucket").get(
+                "Contents"
+            )
+            or []
+        }
+
+    with runner.isolated_filesystem():
+        before_keys = get_keys()
+        result = runner.invoke(
+            cli, ["delete-objects", "my-bucket", "--prefix", "directory/", arg]
+        )
+        assert result.exit_code == 0
+        assert result.output == (
+            "The following keys would be deleted:\n"
+            "directory/three.json\n"
+            "directory/two.txt\n"
+        )
+        after_keys = get_keys()
+        assert before_keys == after_keys
