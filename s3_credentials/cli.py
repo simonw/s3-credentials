@@ -1387,6 +1387,8 @@ def delete_objects(bucket, keys, prefix, silent, dry_run, **boto_options):
             click.echo(key)
         return
     for batch in batches(keys, 1000):
+        # Remove any rogue \r characters:
+        batch = [k.strip() for k in batch]
         response = s3.delete_objects(
             Bucket=bucket, Delete={"Objects": [{"Key": key} for key in batch]}
         )
