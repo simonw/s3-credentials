@@ -1212,3 +1212,67 @@ def test_put_objects(moto_s3, args, expected, expected_output):
             for obj in moto_s3.list_objects(Bucket="my-bucket").get("Contents") or []
         }
         assert keys == (expected or set())
+
+
+@pytest.mark.parametrize(
+    "args,expected,expected_error",
+    (
+        ([], None, "Error: Specify one or more keys or use --prefix"),
+        (
+            ["one.txt", "--prefix", "directory/"],
+            None,
+            "Cannot pass both keys and --prefix",
+        ),
+        (["one.txt"], ["directory/two.txt", "directory/three.json"], None),
+        (["one.txt", "directory/two.txt"], ["directory/three.json"], None),
+        (["--prefix", "directory/"], ["one.txt"], None),
+    ),
+)
+def test_delete_objects(moto_s3_populated, args, expected, expected_error):
+    runner = CliRunner(mix_stderr=False)
+    with runner.isolated_filesystem():
+        result = runner.invoke(
+            cli, ["delete-objects", "my-bucket"] + args, catch_exceptions=False
+        )
+        if expected_error:
+            assert result.exit_code != 0
+            assert expected_error in result.stderr
+        else:
+            assert result.exit_code == 0, result.output
+            # Check expected files are left in bucket
+            keys = {
+                obj["Key"]
+                for obj in moto_s3_populated.list_objects(Bucket="my-bucket").get(
+                    "Contents"
+                )
+                or []
+            }
+            assert keys == set(expected)
+
+
+@pytest.mark.parametrize("arg", ("-d", "--dry-run"))
+def test_delete_objects_dry_run(moto_s3_populated, arg):
+    runner = CliRunner(mix_stderr=False)
+
+    def get_keys():
+        return {
+            obj["Key"]
+            for obj in moto_s3_populated.list_objects(Bucket="my-bucket").get(
+                "Contents"
+            )
+            or []
+        }
+
+    with runner.isolated_filesystem():
+        before_keys = get_keys()
+        result = runner.invoke(
+            cli, ["delete-objects", "my-bucket", "--prefix", "directory/", arg]
+        )
+        assert result.exit_code == 0
+        assert result.output == (
+            "The following keys would be deleted:\n"
+            "directory/three.json\n"
+            "directory/two.txt\n"
+        )
+        after_keys = get_keys()
+        assert before_keys == after_keys

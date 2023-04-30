@@ -1329,6 +1329,75 @@ def get_cors_policy(bucket, **boto_options):
     click.echo(json.dumps(response["CORSRules"], indent=4, default=str))
 
 
+@cli.command()
+@click.argument("bucket")
+@click.argument(
+    "keys",
+    nargs=-1,
+)
+@click.option(
+    "--prefix",
+    help="Delete everything with this prefix",
+)
+@click.option(
+    "silent", "-s", "--silent", is_flag=True, help="Don't show informational output"
+)
+@click.option(
+    "dry_run",
+    "-d",
+    "--dry-run",
+    is_flag=True,
+    help="Show keys that would be deleted without deleting them",
+)
+@common_boto3_options
+def delete_objects(bucket, keys, prefix, silent, dry_run, **boto_options):
+    """
+    Delete one or more object from an S3 bucket
+
+    Pass one or more keys to delete them:
+
+        s3-credentials delete-objects my-bucket one.txt two.txt
+
+    To delete all files matching a prefix, pass --prefix:
+
+        s3-credentials delete-objects my-bucket --prefix my-folder/
+    """
+    s3 = make_client("s3", **boto_options)
+    if keys and prefix:
+        raise click.ClickException("Cannot pass both keys and --prefix")
+    if not keys and not prefix:
+        raise click.ClickException("Specify one or more keys or use --prefix")
+    if prefix:
+        # List all keys with this prefix
+        paginator = s3.get_paginator("list_objects_v2")
+        response_iterator = paginator.paginate(Bucket=bucket, Prefix=prefix)
+        keys = []
+        for response in response_iterator:
+            keys.extend([obj["Key"] for obj in response.get("Contents", [])])
+    if not silent:
+        click.echo(
+            "Deleting {} object{} from {}".format(
+                len(keys), "s" if len(keys) != 1 else "", bucket
+            ),
+            err=True,
+        )
+    if dry_run:
+        click.echo("The following keys would be deleted:")
+        for key in keys:
+            click.echo(key)
+        return
+    for batch in batches(keys, 1000):
+        # Remove any rogue \r characters:
+        batch = [k.strip() for k in batch]
+        response = s3.delete_objects(
+            Bucket=bucket, Delete={"Objects": [{"Key": key} for key in batch]}
+        )
+        if response.get("Errors"):
+            click.echo(
+                "Errors deleting objects: {}".format(response["Errors"]), err=True
+            )
+
+
 def output(iterator, headers, nl, csv, tsv):
     if nl:
         for item in iterator:
@@ -1397,3 +1466,7 @@ def format_bytes(size):
         size /= 1024
 
     return size
+
+
+def batches(all, batch_size):
+    return [all[i : i + batch_size] for i in range(0, len(all), batch_size)]
