@@ -33,5 +33,5 @@ setup(
     """,
     install_requires=["click", "boto3"],
     extras_require={"test": ["pytest", "pytest-mock", "cogapp", "moto[s3]"]},
-    python_requires=">=3.6",
+    python_requires=">=3.7",
 )
