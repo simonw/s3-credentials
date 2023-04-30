@@ -34,6 +34,7 @@ Options:
 
 Commands:
   create              Create and return new AWS credentials for specified...
+  delete-objects      Delete one or more object from an S3 bucket
   delete-user         Delete specified users, their access keys and their...
   get-cors-policy     Get CORS policy for a bucket
   get-object          Download an object from an S3 bucket
@@ -101,6 +102,31 @@ Options:
   --endpoint-url TEXT             Custom endpoint URL
   -a, --auth FILENAME             Path to JSON/INI file containing credentials
   --help                          Show this message and exit.
+```
+## s3-credentials delete-objects --help
+
+```
+Usage: s3-credentials delete-objects [OPTIONS] BUCKET [KEYS]...
+
+  Delete one or more object from an S3 bucket
+
+  Pass one or more keys to delete them:
+
+      s3-credentials delete-objects my-bucket one.txt two.txt
+
+  To delete all files matching a prefix, pass --prefix:
+
+      s3-credentials delete-objects my-bucket --prefix my-folder/
+
+Options:
+  --prefix TEXT         Delete everything with this prefix
+  -s, --silent          Don't show informational output
+  --access-key TEXT     AWS access key ID
+  --secret-key TEXT     AWS secret access key
+  --session-token TEXT  AWS session token
+  --endpoint-url TEXT   Custom endpoint URL
+  -a, --auth FILENAME   Path to JSON/INI file containing credentials
+  --help                Show this message and exit.
 ```
 ## s3-credentials delete-user --help
 
