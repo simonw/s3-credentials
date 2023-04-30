@@ -1356,13 +1356,10 @@ def delete_objects(bucket, keys, prefix, silent, **boto_options):
         s3-credentials delete-objects my-bucket --prefix my-folder/
     """
     s3 = make_client("s3", **boto_options)
-    print("keys", keys, "prefix", prefix)
     if keys and prefix:
         raise click.ClickException("Cannot pass both keys and --prefix")
     if not keys and not prefix:
         raise click.ClickException("Specify one or more keys or use --prefix")
-    if prefix and not prefix.endswith("/"):
-        prefix = prefix + "/"
     if prefix:
         # List all keys with this prefix
         paginator = s3.get_paginator("list_objects_v2")
