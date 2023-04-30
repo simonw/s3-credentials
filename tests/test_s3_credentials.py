@@ -1218,6 +1218,11 @@ def test_put_objects(moto_s3, args, expected, expected_output):
     "args,expected,expected_error",
     (
         ([], None, "Error: Specify one or more keys or use --prefix"),
+        (
+            ["one.txt", "--prefix", "directory/"],
+            None,
+            "Cannot pass both keys and --prefix",
+        ),
         (["one.txt"], ["directory/two.txt", "directory/three.json"], None),
         (["one.txt", "directory/two.txt"], ["directory/three.json"], None),
         (["--prefix", "directory/"], ["one.txt"], None),
