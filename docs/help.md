@@ -34,6 +34,7 @@ Options:
 
 Commands:
   create              Create and return new AWS credentials for specified...
+  debug-bucket        Run a bunch of diagnostics to help debug a bucket
   delete-objects      Delete one or more object from an S3 bucket
   delete-user         Delete specified users, their access keys and their...
   get-cors-policy     Get CORS policy for a bucket
@@ -102,6 +103,23 @@ Options:
   --endpoint-url TEXT             Custom endpoint URL
   -a, --auth FILENAME             Path to JSON/INI file containing credentials
   --help                          Show this message and exit.
+```
+## s3-credentials debug-bucket --help
+
+```
+Usage: s3-credentials debug-bucket [OPTIONS] BUCKET
+
+  Run a bunch of diagnostics to help debug a bucket
+
+     s3-credentials debug-bucket my-bucket
+
+Options:
+  --access-key TEXT     AWS access key ID
+  --secret-key TEXT     AWS secret access key
+  --session-token TEXT  AWS session token
+  --endpoint-url TEXT   Custom endpoint URL
+  -a, --auth FILENAME   Path to JSON/INI file containing credentials
+  --help                Show this message and exit.
 ```
 ## s3-credentials delete-objects --help
 
@@ -238,8 +256,13 @@ Usage: s3-credentials list-bucket [OPTIONS] BUCKET
 
       s3-credentials list-bucket my-bucket --csv
 
+  Add --urls to get an extra URL field for each key:
+
+      s3-credentials list-bucket my-bucket --urls
+
 Options:
   --prefix TEXT         List keys starting with this prefix
+  --urls                Show URLs for each key
   --nl                  Output newline-delimited JSON
   --csv                 Output CSV
   --tsv                 Output TSV
