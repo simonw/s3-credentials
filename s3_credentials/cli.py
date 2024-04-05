@@ -16,6 +16,13 @@ import sys
 import textwrap
 from . import policies
 
+PUBLIC_ACCESS_BLOCK_CONFIGURATION = {
+    "BlockPublicAcls": False,
+    "IgnorePublicAcls": False,
+    "BlockPublicPolicy": False,
+    "RestrictPublicBuckets": False,
+}
+
 
 def bucket_exists(s3, bucket):
     try:
@@ -388,6 +395,12 @@ def create(
                             ),
                         )
                     )
+                    if public:
+                        click.echo(
+                            "... then add this public access block configuration:"
+                        )
+                        click.echo(json.dumps(PUBLIC_ACCESS_BLOCK_CONFIGURATION))
+
                     if bucket_policy:
                         click.echo("... then attach the following bucket policy to it:")
                         click.echo(json.dumps(bucket_policy, indent=4))
@@ -401,6 +414,13 @@ def create(
                     if bucket_region:
                         info += " in region: {}".format(bucket_region)
                     log(info)
+
+                    if public:
+                        s3.put_public_access_block(
+                            Bucket=bucket,
+                            PublicAccessBlockConfiguration=PUBLIC_ACCESS_BLOCK_CONFIGURATION,
+                        )
+                        log("Set public access block configuration")
 
                     if bucket_policy:
                         s3.put_bucket_policy(

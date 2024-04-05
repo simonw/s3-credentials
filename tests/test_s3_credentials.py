@@ -476,6 +476,7 @@ def test_create_public(mocker):
         assert result.exit_code == 0
         assert result.output == (
             "Created bucket: pytest-bucket-simonw-1\n"
+            "Set public access block configuration\n"
             "Attached bucket policy allowing public access\n"
             "Attached policy s3.read-write.pytest-bucket-simonw-1 to user s3.read-write.pytest-bucket-simonw-1\n"
             "Created access key for user: s3.read-write.pytest-bucket-simonw-1\n"
@@ -490,11 +491,8 @@ def test_create_public(mocker):
             "call('sts')",
             "call().head_bucket(Bucket='pytest-bucket-simonw-1')",
             "call().create_bucket(Bucket='pytest-bucket-simonw-1')",
-            "call().put_bucket_policy(Bucket='pytest-bucket-simonw-1', "
-            'Policy=\'{"Version": "2012-10-17", "Statement": [{"Sid": '
-            '"AllowAllGetObject", "Effect": "Allow", "Principal": "*", "Action": '
-            '["s3:GetObject"], "Resource": '
-            '["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}\')',
+            "call().put_public_access_block(Bucket='pytest-bucket-simonw-1', PublicAccessBlockConfiguration={'BlockPublicAcls': False, 'IgnorePublicAcls': False, 'BlockPublicPolicy': False, 'RestrictPublicBuckets': False})",
+            'call().put_bucket_policy(Bucket=\'pytest-bucket-simonw-1\', Policy=\'{"Version": "2012-10-17", "Statement": [{"Sid": "AllowAllGetObject", "Effect": "Allow", "Principal": "*", "Action": ["s3:GetObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}\')',
             "call().get_user(UserName='s3.read-write.pytest-bucket-simonw-1')",
             "call().put_user_policy(PolicyDocument='{}', PolicyName='s3.read-write.pytest-bucket-simonw-1', UserName='s3.read-write.pytest-bucket-simonw-1')".format(
                 READ_WRITE_POLICY.replace("$!BUCKET_NAME!$", "pytest-bucket-simonw-1"),
@@ -520,6 +518,7 @@ def test_create_website(mocker):
         assert result.exit_code == 0
         assert result.output == (
             "Created bucket: pytest-bucket-simonw-1\n"
+            "Set public access block configuration\n"
             "Attached bucket policy allowing public access\n"
             "Configured website: IndexDocument=index.html, ErrorDocument=error.html\n"
             "Attached policy s3.read-write.pytest-bucket-simonw-1 to user s3.read-write.pytest-bucket-simonw-1\n"
@@ -535,14 +534,9 @@ def test_create_website(mocker):
             "call('sts')",
             "call().head_bucket(Bucket='pytest-bucket-simonw-1')",
             "call().create_bucket(Bucket='pytest-bucket-simonw-1')",
-            "call().put_bucket_policy(Bucket='pytest-bucket-simonw-1', "
-            'Policy=\'{"Version": "2012-10-17", "Statement": [{"Sid": '
-            '"AllowAllGetObject", "Effect": "Allow", "Principal": "*", "Action": '
-            '["s3:GetObject"], "Resource": '
-            '["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}\')',
-            "call().put_bucket_website(Bucket='pytest-bucket-simonw-1', "
-            "WebsiteConfiguration={'ErrorDocument': {'Key': 'error.html'}, "
-            "'IndexDocument': {'Suffix': 'index.html'}})",
+            "call().put_public_access_block(Bucket='pytest-bucket-simonw-1', PublicAccessBlockConfiguration={'BlockPublicAcls': False, 'IgnorePublicAcls': False, 'BlockPublicPolicy': False, 'RestrictPublicBuckets': False})",
+            'call().put_bucket_policy(Bucket=\'pytest-bucket-simonw-1\', Policy=\'{"Version": "2012-10-17", "Statement": [{"Sid": "AllowAllGetObject", "Effect": "Allow", "Principal": "*", "Action": ["s3:GetObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}\')',
+            "call().put_bucket_website(Bucket='pytest-bucket-simonw-1', WebsiteConfiguration={'ErrorDocument': {'Key': 'error.html'}, 'IndexDocument': {'Suffix': 'index.html'}})",
             "call().get_user(UserName='s3.read-write.pytest-bucket-simonw-1')",
             "call().put_user_policy(PolicyDocument='{}', PolicyName='s3.read-write.pytest-bucket-simonw-1', UserName='s3.read-write.pytest-bucket-simonw-1')".format(
                 READ_WRITE_POLICY.replace("$!BUCKET_NAME!$", "pytest-bucket-simonw-1"),
