@@ -2,7 +2,7 @@ import boto3
 import logging
 import os
 import pytest
-from moto import mock_s3
+from moto import mock_aws
 
 
 def pytest_addoption(parser):
@@ -51,7 +51,7 @@ def aws_credentials():
 
 @pytest.fixture(scope="function")
 def moto_s3(aws_credentials):
-    with mock_s3():
+    with mock_aws():
         client = boto3.client("s3", region_name="us-east-1")
         client.create_bucket(Bucket="my-bucket")
         yield client
