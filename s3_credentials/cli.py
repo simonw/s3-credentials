@@ -306,7 +306,7 @@ def create(
     user_permissions_boundary,
     silent,
     dry_run,
-    **boto_options
+    **boto_options,
 ):
     """
     Create and return new AWS credentials for specified S3 buckets - optionally
@@ -781,10 +781,10 @@ def list_buckets(buckets, details, nl, csv, tsv, **boto_options):
                         ).items()
                         if key != "ResponseMetadata"
                     )
-                    bucket_website[
-                        "url"
-                    ] = "http://{}.s3-website.{}.amazonaws.com/".format(
-                        bucket["Name"], region
+                    bucket_website["url"] = (
+                        "http://{}.s3-website.{}.amazonaws.com/".format(
+                            bucket["Name"], region
+                        )
                     )
                 except s3.exceptions.ClientError:
                     bucket_website = None
@@ -1272,7 +1272,7 @@ def set_cors_policy(
     allowed_origins,
     expose_headers,
     max_age_seconds,
-    **boto_options
+    **boto_options,
 ):
     """
     Set CORS policy for a bucket
@@ -1493,9 +1493,11 @@ def fix_json(row):
         [
             (
                 key,
-                json.dumps(value, indent=2, default=str)
-                if isinstance(value, (dict, list, tuple))
-                else value,
+                (
+                    json.dumps(value, indent=2, default=str)
+                    if isinstance(value, (dict, list, tuple))
+                    else value
+                ),
             )
             for key, value in row.items()
         ]
