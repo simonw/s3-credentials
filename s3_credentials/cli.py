@@ -936,9 +936,10 @@ def ensure_s3_role_exists(iam, sts):
 @cli.command()
 @click.argument("bucket")
 @click.option("--prefix", help="List keys starting with this prefix")
+@click.option("--urls", is_flag=True, help="Show URLs for each key")
 @common_output_options
 @common_boto3_options
-def list_bucket(bucket, prefix, nl, csv, tsv, **boto_options):
+def list_bucket(bucket, prefix, urls, nl, csv, tsv, **boto_options):
     """
     List contents of bucket
 
@@ -949,16 +950,31 @@ def list_bucket(bucket, prefix, nl, csv, tsv, **boto_options):
     Add --csv or --csv for CSV or TSV format:
 
         s3-credentials list-bucket my-bucket --csv
+
+    Add --urls to get an extra URL field for each key:
+
+        s3-credentials list-bucket my-bucket --urls
     """
     s3 = make_client("s3", **boto_options)
     kwargs = {"Bucket": bucket}
     if prefix:
         kwargs["Prefix"] = prefix
 
+    fields = ["Key", "LastModified", "ETag", "Size", "StorageClass", "Owner"]
+    if urls:
+        fields.append("URL")
+
+    items = paginate(s3, "list_objects_v2", "Contents", **kwargs)
+    if urls:
+        items = (
+            dict(item, URL="https://s3.amazonaws.com/{}/{}".format(bucket, item["Key"]))
+            for item in items
+        )
+
     try:
         output(
-            paginate(s3, "list_objects_v2", "Contents", **kwargs),
-            ("Key", "LastModified", "ETag", "Size", "StorageClass", "Owner"),
+            items,
+            fields,
             nl,
             csv,
             tsv,

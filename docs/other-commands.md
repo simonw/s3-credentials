@@ -180,6 +180,8 @@ You can use the `--prefix myprefix/` option to list only keys that start with a 
 
 The commmand accepts the same `--nl`, `--csv` and `--tsv` options as `list-users`.
 
+Add `--urls` to include a `URL` field in the output providing the full URL to each object.
+
 ## list-user-policies
 
 To see a list of inline policies belonging to users:
