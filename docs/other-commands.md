@@ -503,3 +503,45 @@ The following example allows GET and PUT methods from code running on `https://w
       --allowed-origin https://www.example.com/ \
       --expose-header ETag \
       --max-age-seconds 60
+
+## debug-bucket
+
+The `debug-bucket` command is useful for diagnosing issues with a bucket:
+
+    s3-credentials debug-bucket my-bucket
+
+Example output:
+```
+Bucket ACL:
+{
+    "Owner": {
+        "DisplayName": "username",
+        "ID": "cc8ca3a037c6a7c1fa7580076bf7cd1949b3f2f58f01c9df9e53c51f6a249910"
+    },
+    "Grants": [
+        {
+            "Grantee": {
+                "DisplayName": "username",
+                "ID": "cc8ca3a037c6a7c1fa7580076bf7cd1949b3f2f58f01c9df9e53c51f6a249910",
+                "Type": "CanonicalUser"
+            },
+            "Permission": "FULL_CONTROL"
+        }
+    ]
+}
+Bucket policy status:
+{
+    "PolicyStatus": {
+        "IsPublic": true
+    }
+}
+Bucket public access block:
+{
+    "PublicAccessBlockConfiguration": {
+        "BlockPublicAcls": false,
+        "IgnorePublicAcls": false,
+        "BlockPublicPolicy": false,
+        "RestrictPublicBuckets": false
+    }
+}
+```

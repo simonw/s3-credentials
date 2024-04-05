@@ -1329,6 +1329,49 @@ def get_cors_policy(bucket, **boto_options):
     click.echo(json.dumps(response["CORSRules"], indent=4, default=str))
 
 
+def without_response_metadata(data):
+    return dict(
+        (key, value) for key, value in data.items() if key != "ResponseMetadata"
+    )
+
+
+@cli.command()
+@click.argument("bucket")
+@common_boto3_options
+def debug_bucket(bucket, **boto_options):
+    """
+    Run a bunch of diagnostics to help debug a bucket
+
+       s3-credentials debug-bucket my-bucket
+    """
+    s3 = make_client("s3", **boto_options)
+
+    try:
+        bucket_acl = s3.get_bucket_acl(Bucket=bucket)
+        click.echo("Bucket ACL:")
+        click.echo(json.dumps(without_response_metadata(bucket_acl), indent=4))
+    except Exception as ex:
+        print(f"Error checking bucket ACL: {ex}")
+
+    try:
+        bucket_policy_status = s3.get_bucket_policy_status(Bucket=bucket)
+        click.echo("Bucket policy status:")
+        click.echo(
+            json.dumps(without_response_metadata(bucket_policy_status), indent=4)
+        )
+    except Exception as ex:
+        print(f"Error checking bucket policy status: {ex}")
+
+    try:
+        bucket_public_access_block = s3.get_public_access_block(Bucket=bucket)
+        click.echo("Bucket public access block:")
+        click.echo(
+            json.dumps(without_response_metadata(bucket_public_access_block), indent=4)
+        )
+    except Exception as ex:
+        print(f"Error checking bucket public access block: {ex}")
+
+
 @cli.command()
 @click.argument("bucket")
 @click.argument(
