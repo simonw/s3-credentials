@@ -37,6 +37,7 @@ Commands:
   debug-bucket        Run a bunch of diagnostics to help debug a bucket
   delete-objects      Delete one or more object from an S3 bucket
   delete-user         Delete specified users, their access keys and their...
+  get-bucket-policy   Get bucket policy for a bucket
   get-cors-policy     Get CORS policy for a bucket
   get-object          Download an object from an S3 bucket
   get-objects         Download multiple objects from an S3 bucket
@@ -48,6 +49,7 @@ Commands:
   policy              Output generated JSON policy for one or more buckets
   put-object          Upload an object to an S3 bucket
   put-objects         Upload multiple objects to an S3 bucket
+  set-bucket-policy   Set bucket policy for a bucket
   set-cors-policy     Set CORS policy for a bucket
   whoami              Identify currently authenticated user
 ```
@@ -155,6 +157,25 @@ Usage: s3-credentials delete-user [OPTIONS] USERNAMES...
   Delete specified users, their access keys and their inline policies
 
       s3-credentials delete-user username1 username2
+
+Options:
+  --access-key TEXT     AWS access key ID
+  --secret-key TEXT     AWS secret access key
+  --session-token TEXT  AWS session token
+  --endpoint-url TEXT   Custom endpoint URL
+  -a, --auth FILENAME   Path to JSON/INI file containing credentials
+  --help                Show this message and exit.
+```
+## s3-credentials get-bucket-policy --help
+
+```
+Usage: s3-credentials get-bucket-policy [OPTIONS] BUCKET
+
+  Get bucket policy for a bucket
+
+     s3-credentials get-bucket-policy my-bucket
+
+  Returns the bucket policy for this bucket, if set, as JSON
 
 Options:
   --access-key TEXT     AWS access key ID
@@ -463,6 +484,29 @@ Options:
   --endpoint-url TEXT   Custom endpoint URL
   -a, --auth FILENAME   Path to JSON/INI file containing credentials
   --help                Show this message and exit.
+```
+## s3-credentials set-bucket-policy --help
+
+```
+Usage: s3-credentials set-bucket-policy [OPTIONS] BUCKET
+
+  Set bucket policy for a bucket
+
+      s3-credentials set-bucket-policy my-bucket --policy-file policy.json
+
+  Or to set a policy that allows GET requests from all:
+
+      s3-credentials set-bucket-policy my-bucket --allow-all-get
+
+Options:
+  --policy-file FILENAME
+  --allow-all-get         Allow GET requests from all
+  --access-key TEXT       AWS access key ID
+  --secret-key TEXT       AWS secret access key
+  --session-token TEXT    AWS session token
+  --endpoint-url TEXT     Custom endpoint URL
+  -a, --auth FILENAME     Path to JSON/INI file containing credentials
+  --help                  Show this message and exit.
 ```
 ## s3-credentials set-cors-policy --help
 

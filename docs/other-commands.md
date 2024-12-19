@@ -570,3 +570,36 @@ Bucket public access block:
     }
 }
 ```
+## get-bucket-policy
+
+The `get-bucket-policy` command displays the current bucket policy for a bucket:
+```bash
+s3-credentials get-bucket-policy my-bucket
+```
+Example output:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowAllGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::my-bucket/*"
+        }
+    ]
+}
+```
+
+## set-bucket-policy
+
+The `set-bucket-policy` command can be used to set a bucket policy for a bucket:
+```bash
+s3-credentials set-bucket-policy my-bucket --policy-file policy.json
+```
+Or for the common case of setting a policy to allow GET access to all buckets:
+```bash
+s3-credentials set-bucket-policy my-bucket --allow-all-get
+```

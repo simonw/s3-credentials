@@ -1365,6 +1365,54 @@ def get_cors_policy(bucket, **boto_options):
     click.echo(json.dumps(response["CORSRules"], indent=4, default=str))
 
 
+@cli.command()
+@click.argument("bucket")
+@common_boto3_options
+def get_bucket_policy(bucket, **boto_options):
+    """
+    Get bucket policy for a bucket
+
+       s3-credentials get-bucket-policy my-bucket
+
+    Returns the bucket policy for this bucket, if set, as JSON
+    """
+    s3 = make_client("s3", **boto_options)
+    try:
+        response = s3.get_bucket_policy(Bucket=bucket)
+    except botocore.exceptions.ClientError as e:
+        raise click.ClickException(e)
+    click.echo(json.dumps(json.loads(response["Policy"]), indent=4, default=str))
+
+
+@cli.command()
+@click.argument("bucket")
+@click.option("--policy-file", type=click.File("r"))
+@click.option("--allow-all-get", is_flag=True, help="Allow GET requests from all")
+@common_boto3_options
+def set_bucket_policy(bucket, policy_file, allow_all_get, **boto_options):
+    """
+    Set bucket policy for a bucket
+
+        s3-credentials set-bucket-policy my-bucket --policy-file policy.json
+
+    Or to set a policy that allows GET requests from all:
+
+        s3-credentials set-bucket-policy my-bucket --allow-all-get
+    """
+    s3 = make_client("s3", **boto_options)
+    if allow_all_get and policy_file:
+        raise click.ClickException("Cannot pass both --allow-all-get and --policy-file")
+    if allow_all_get:
+        policy = policies.bucket_policy_allow_all_get(bucket)
+    else:
+        policy = json.load(policy_file)
+    try:
+        s3.put_bucket_policy(Bucket=bucket, Policy=json.dumps(policy))
+    except botocore.exceptions.ClientError as e:
+        raise click.ClickException(e)
+    click.echo("Policy set:\n" + json.dumps(policy, indent=4), err=True)
+
+
 def without_response_metadata(data):
     return dict(
         (key, value) for key, value in data.items() if key != "ResponseMetadata"
