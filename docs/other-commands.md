@@ -603,3 +603,38 @@ Or for the common case of setting a policy to allow GET access to all buckets:
 ```bash
 s3-credentials set-bucket-policy my-bucket --allow-all-get
 ```
+
+## get-public-access-block
+
+The `get-public-access-block` command displays the current public access block configuration for a bucket:
+```bash
+s3-credentials get-public-access-block my-bucket
+```
+Example output:
+
+```json
+{
+    "BlockPublicAcls": false,
+    "IgnorePublicAcls": false,
+    "BlockPublicPolicy": false,
+    "RestrictPublicBuckets": false
+}
+```
+
+## set-public-access-block
+
+The `set-public-access-block` command can be used to set the public access block configuration for a bucket:
+```bash
+s3-credentials set-public-access-block my-bucket \
+  --block-public-acls true \
+  --ignore-public-acls true \
+  --block-public-policy true \
+  --restrict-public-buckets true
+```
+Each of the above options accepts `true` or `false`.
+
+You can use the `--allow-public-access` shortcut to set everything to `false` in one go:
+```bash
+s3-credentials set-public-access-block my-bucket \
+  --allow-public-access
+```

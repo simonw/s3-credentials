@@ -33,25 +33,27 @@ Options:
   --help     Show this message and exit.
 
 Commands:
-  create              Create and return new AWS credentials for specified...
-  debug-bucket        Run a bunch of diagnostics to help debug a bucket
-  delete-objects      Delete one or more object from an S3 bucket
-  delete-user         Delete specified users, their access keys and their...
-  get-bucket-policy   Get bucket policy for a bucket
-  get-cors-policy     Get CORS policy for a bucket
-  get-object          Download an object from an S3 bucket
-  get-objects         Download multiple objects from an S3 bucket
-  list-bucket         List contents of bucket
-  list-buckets        List buckets
-  list-roles          List roles
-  list-user-policies  List inline policies for specified users
-  list-users          List all users for this account
-  policy              Output generated JSON policy for one or more buckets
-  put-object          Upload an object to an S3 bucket
-  put-objects         Upload multiple objects to an S3 bucket
-  set-bucket-policy   Set bucket policy for a bucket
-  set-cors-policy     Set CORS policy for a bucket
-  whoami              Identify currently authenticated user
+  create                   Create and return new AWS credentials for...
+  debug-bucket             Run a bunch of diagnostics to help debug a bucket
+  delete-objects           Delete one or more object from an S3 bucket
+  delete-user              Delete specified users, their access keys and...
+  get-bucket-policy        Get bucket policy for a bucket
+  get-cors-policy          Get CORS policy for a bucket
+  get-object               Download an object from an S3 bucket
+  get-objects              Download multiple objects from an S3 bucket
+  get-public-access-block  Get the public access settings for an S3 bucket
+  list-bucket              List contents of bucket
+  list-buckets             List buckets
+  list-roles               List roles
+  list-user-policies       List inline policies for specified users
+  list-users               List all users for this account
+  policy                   Output generated JSON policy for one or more...
+  put-object               Upload an object to an S3 bucket
+  put-objects              Upload multiple objects to an S3 bucket
+  set-bucket-policy        Set bucket policy for a bucket
+  set-cors-policy          Set CORS policy for a bucket
+  set-public-access-block  Configure public access settings for an S3 bucket.
+  whoami                   Identify currently authenticated user
 ```
 ## s3-credentials create --help
 
@@ -261,6 +263,25 @@ Options:
   --endpoint-url TEXT     Custom endpoint URL
   -a, --auth FILENAME     Path to JSON/INI file containing credentials
   --help                  Show this message and exit.
+```
+## s3-credentials get-public-access-block --help
+
+```
+Usage: s3-credentials get-public-access-block [OPTIONS] BUCKET
+
+  Get the public access settings for an S3 bucket
+
+  Example usage:
+
+      s3-credentials get-public-access-block my-bucket
+
+Options:
+  --access-key TEXT     AWS access key ID
+  --secret-key TEXT     AWS secret access key
+  --session-token TEXT  AWS session token
+  --endpoint-url TEXT   Custom endpoint URL
+  -a, --auth FILENAME   Path to JSON/INI file containing credentials
+  --help                Show this message and exit.
 ```
 ## s3-credentials list-bucket --help
 
@@ -539,6 +560,37 @@ Options:
   --endpoint-url TEXT        Custom endpoint URL
   -a, --auth FILENAME        Path to JSON/INI file containing credentials
   --help                     Show this message and exit.
+```
+## s3-credentials set-public-access-block --help
+
+```
+Usage: s3-credentials set-public-access-block [OPTIONS] BUCKET
+
+  Configure public access settings for an S3 bucket.
+
+  Example:
+
+      s3-credentials set-public-access-block my-bucket --block-public-acls false
+
+  To allow full public access to the bucket, use the --allow-public-access flag:
+
+      s3-credentials set-public-access-block my-bucket --allow-public-access
+
+Options:
+  --block-public-acls BOOLEAN     Block public ACLs for the bucket (true/false).
+  --ignore-public-acls BOOLEAN    Ignore public ACLs for the bucket
+                                  (true/false).
+  --block-public-policy BOOLEAN   Block public bucket policies (true/false).
+  --restrict-public-buckets BOOLEAN
+                                  Restrict public buckets (true/false).
+  --allow-public-access           Set all public access settings to false
+                                  (allows full public access).
+  --access-key TEXT               AWS access key ID
+  --secret-key TEXT               AWS secret access key
+  --session-token TEXT            AWS session token
+  --endpoint-url TEXT             Custom endpoint URL
+  -a, --auth FILENAME             Path to JSON/INI file containing credentials
+  --help                          Show this message and exit.
 ```
 ## s3-credentials whoami --help
 

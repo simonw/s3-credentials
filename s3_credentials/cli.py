@@ -1525,6 +1525,119 @@ def delete_objects(bucket, keys, prefix, silent, dry_run, **boto_options):
             )
 
 
+@cli.command()
+@click.argument("bucket", required=True)
+@common_boto3_options
+def get_public_access_block(bucket, **boto_options):
+    """
+    Get the public access settings for an S3 bucket
+
+    Example usage:
+
+        s3-credentials get-public-access-block my-bucket
+    """
+    s3 = make_client("s3", **boto_options)
+    try:
+        response = s3.get_public_access_block(Bucket=bucket)
+    except botocore.exceptions.ClientError as e:
+        raise click.ClickException(e)
+    click.echo(json.dumps(response["PublicAccessBlockConfiguration"], indent=4))
+
+
+@cli.command()
+@click.argument("bucket", required=True)
+@click.option(
+    "--block-public-acls",
+    type=bool,
+    default=None,
+    help="Block public ACLs for the bucket (true/false).",
+)
+@click.option(
+    "--ignore-public-acls",
+    type=bool,
+    default=None,
+    help="Ignore public ACLs for the bucket (true/false).",
+)
+@click.option(
+    "--block-public-policy",
+    type=bool,
+    default=None,
+    help="Block public bucket policies (true/false).",
+)
+@click.option(
+    "--restrict-public-buckets",
+    type=bool,
+    default=None,
+    help="Restrict public buckets (true/false).",
+)
+@click.option(
+    "--allow-public-access",
+    is_flag=True,
+    help="Set all public access settings to false (allows full public access).",
+)
+@common_boto3_options
+def set_public_access_block(
+    bucket,
+    block_public_acls,
+    ignore_public_acls,
+    block_public_policy,
+    restrict_public_buckets,
+    allow_public_access,
+    **boto_options,
+):
+    """
+    Configure public access settings for an S3 bucket.
+
+    Example:
+
+        s3-credentials set-public-access-block my-bucket --block-public-acls false
+
+    To allow full public access to the bucket, use the --allow-public-access flag:
+
+        s3-credentials set-public-access-block my-bucket --allow-public-access
+    """
+    s3 = make_client("s3", **boto_options)
+
+    # Default public access block configuration
+    public_access_block_config = {}
+
+    if allow_public_access:
+        # Set all settings to False if --allow-public-access is provided
+        public_access_block_config = {
+            "BlockPublicAcls": False,
+            "IgnorePublicAcls": False,
+            "BlockPublicPolicy": False,
+            "RestrictPublicBuckets": False,
+        }
+    else:
+        # Add values only if they are explicitly provided
+        if block_public_acls is not None:
+            public_access_block_config["BlockPublicAcls"] = block_public_acls
+        if ignore_public_acls is not None:
+            public_access_block_config["IgnorePublicAcls"] = ignore_public_acls
+        if block_public_policy is not None:
+            public_access_block_config["BlockPublicPolicy"] = block_public_policy
+        if restrict_public_buckets is not None:
+            public_access_block_config["RestrictPublicBuckets"] = (
+                restrict_public_buckets
+            )
+
+    if not public_access_block_config:
+        raise click.ClickException(
+            "No valid options provided. Use --help to see available options."
+        )
+
+    # Apply the public access block configuration to the bucket
+    s3.put_public_access_block(
+        Bucket=bucket, PublicAccessBlockConfiguration=public_access_block_config
+    )
+
+    click.echo(
+        f"Updated public access block settings for bucket '{bucket}': {public_access_block_config}",
+        err=True,
+    )
+
+
 def output(iterator, headers, nl, csv, tsv):
     if nl:
         for item in iterator:
