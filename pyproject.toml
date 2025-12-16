@@ -21,9 +21,12 @@ Changelog = "https://github.com/simonw/s3-credentials/releases"
 s3-credentials = "s3_credentials.cli:cli"
 
 [tool.poe.tasks]
-docs = "sphinx-build -M html docs docs/_build"
-livehtml = "sphinx-autobuild -b html docs docs/_build"
-cog = "cog -r docs/*.md"
+docs.cmd = "sphinx-build -M html docs docs/_build"
+docs.help = "Build the docs"
+livehtml.cmd = "sphinx-autobuild -b html docs docs/_build"
+livehtml.help = "Live-reloading docs server"
+cog.cmd = "cog -r docs/*.md"
+cog.help = "Regenerate cog snippets in the docs"
 
 [build-system]
 requires = ["setuptools"]
