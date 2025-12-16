@@ -11,46 +11,7 @@ import time
 import click
 
 from . import policies
-
-
-def ensure_s3_role_exists(iam, sts):
-    "Create s3-credentials.AmazonS3FullAccess role if not exists, return ARN"
-    role_name = "s3-credentials.AmazonS3FullAccess"
-    account_id = sts.get_caller_identity()["Account"]
-    try:
-        role = iam.get_role(RoleName=role_name)
-        return role["Role"]["Arn"]
-    except iam.exceptions.NoSuchEntityException:
-        create_role_response = iam.create_role(
-            Description=(
-                "Role used by the s3-credentials tool to create time-limited "
-                "credentials that are restricted to specific buckets"
-            ),
-            RoleName=role_name,
-            AssumeRolePolicyDocument=json.dumps(
-                {
-                    "Version": "2012-10-17",
-                    "Statement": [
-                        {
-                            "Effect": "Allow",
-                            "Principal": {
-                                "AWS": "arn:aws:iam::{}:root".format(account_id)
-                            },
-                            "Action": "sts:AssumeRole",
-                        }
-                    ],
-                }
-            ),
-            MaxSessionDuration=12 * 60 * 60,
-        )
-        # Attach AmazonS3FullAccess to it - note that even though we use full access
-        # on the role itself any time we call sts.assume_role() we attach an additional
-        # policy to ensure reduced access for the temporary credentials
-        iam.attach_role_policy(
-            RoleName="s3-credentials.AmazonS3FullAccess",
-            PolicyArn="arn:aws:iam::aws:policy/AmazonS3FullAccess",
-        )
-        return create_role_response["Role"]["Arn"]
+from .cli import ensure_s3_role_exists
 
 
 class CredentialCache:
