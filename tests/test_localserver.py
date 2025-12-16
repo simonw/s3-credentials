@@ -305,6 +305,7 @@ def test_make_credential_handler_returns_credentials(mocker):
     # Parse the response body
     response_body = handler.wfile.getvalue().decode()
     response_json = json.loads(response_body)
+    assert response_json["Version"] == 1
     assert response_json["AccessKeyId"] == "AKIAIOSFODNN7EXAMPLE"
     assert response_json["SecretAccessKey"] == "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
     assert response_json["SessionToken"] == "session-token"

@@ -163,6 +163,7 @@ def make_credential_handler(credential_cache):
             try:
                 credentials = credential_cache.get_credentials()
                 response_data = {
+                    "Version": 1,
                     "AccessKeyId": credentials["AccessKeyId"],
                     "SecretAccessKey": credentials["SecretAccessKey"],
                     "SessionToken": credentials["SessionToken"],
