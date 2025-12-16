@@ -21,7 +21,7 @@ With none of these options it defaults to a read-write policy.
 ```bash
 s3-credentials policy my-bucket --read-only
 ```
-```json
+```
 {
     "Version": "2012-10-17",
 ...
