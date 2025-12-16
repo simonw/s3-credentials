@@ -330,12 +330,12 @@ class GetOutputError(Exception):
 
 
 def get_output(*args, input=None):
-    runner = CliRunner(mix_stderr=False)
+    runner = CliRunner()
     with runner.isolated_filesystem():
         result = runner.invoke(cli, args, catch_exceptions=False, input=input)
     if result.exit_code != 0:
-        raise GetOutputError(result.stderr)
-    return result.stdout
+        raise GetOutputError(result.output)
+    return result.output
 
 
 def read_file(s3, bucket, path):
