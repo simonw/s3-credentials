@@ -28,6 +28,7 @@ maxdepth: 3
 ---
 configuration
 create
+localserver
 other-commands
 policy-documents
 help
