@@ -1,26 +1,17 @@
 # Contributing
 
-To contribute to this tool, first checkout [the code](https://github.com/simonw/s3-credentials). Then create a new virtual environment:
+To contribute to this tool, first checkout [the code](https://github.com/simonw/s3-credentials). You can run the tests locally using `pytest` and `uv`:
 
     cd s3-credentials
-    python -m venv venv
-    source venv/bin/activate
+    uv run pytest
 
-Or if you are using `pipenv`:
+Any changes to the generated policies require an update to the docs using [Cog](https://github.com/nedbat/cog):
 
-    pipenv shell
+    uv run poe cog
 
-Now install the dependencies and test dependencies:
+To preview the documentation locally, you can use:
 
-    pip install -e '.[test]'
-
-To run the tests:
-
-    pytest
-
-Any changes to the generated policies require an update to the README using [Cog](https://github.com/nedbat/cog):
-
-    cog -r README.md
+    uv run poe livehtml
 
 ## Integration tests
 
@@ -30,6 +21,6 @@ There is also a suite of integration tests in `tests/test_integration.py` which 
 
 These tests are skipped by default. If you have AWS configured with an account that has permission to run the actions required by `s3-credentials` (create users, roles, buckets etc) you can run these tests using:
 
-    pytest --integration
+    uv run pytest --integration
 
 The tests will create a number of different users and buckets and should then delete them once they finish running.
