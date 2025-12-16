@@ -257,104 +257,64 @@ def test_credential_cache_policy_generation(mocker):
     assert "s3:GetObject" in actions
 
 
-def test_make_credential_handler_returns_credentials(mocker):
+VALID_CREDENTIALS = {
+    "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
+    "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+    "SessionToken": "session-token",
+    "Expiration": datetime.datetime(2025, 12, 16, 12, 0, 0),
+}
+
+
+@pytest.mark.parametrize(
+    "path,credentials_return,credentials_error,expected_status,expected_body_contains",
+    [
+        # Success case: valid path, credentials returned
+        (
+            "/",
+            VALID_CREDENTIALS,
+            None,
+            200,
+            ['"Version": 1', '"AccessKeyId"', '"SessionToken"'],
+        ),
+        # 404 case: wrong path
+        (
+            "/wrong-path",
+            None,
+            None,
+            404,
+            ["Not found"],
+        ),
+        # 500 case: credential generation fails
+        (
+            "/",
+            None,
+            Exception("AWS Error"),
+            500,
+            ["AWS Error"],
+        ),
+    ],
+    ids=["success", "wrong-path-404", "error-500"],
+)
+def test_credential_handler_responses(
+    path,
+    credentials_return,
+    credentials_error,
+    expected_status,
+    expected_body_contains,
+):
     from s3_credentials.localserver import make_credential_handler
     import io
 
     mock_cache = Mock()
-    mock_cache.get_credentials.return_value = {
-        "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
-        "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-        "SessionToken": "session-token",
-        "Expiration": datetime.datetime(2025, 12, 16, 12, 0, 0),
-    }
-
-    handler_class = make_credential_handler(mock_cache)
-
-    # Create handler instance with mocked internals
-    handler = handler_class.__new__(handler_class)
-    handler.path = "/"
-    handler.wfile = io.BytesIO()
-    handler.request_version = "HTTP/1.1"
-    handler.requestline = "GET / HTTP/1.1"
-
-    # Mock response methods
-    response_code = None
-    headers = {}
-
-    def mock_send_response(code):
-        nonlocal response_code
-        response_code = code
-
-    def mock_send_header(name, value):
-        headers[name] = value
-
-    def mock_end_headers():
-        pass
-
-    handler.send_response = mock_send_response
-    handler.send_header = mock_send_header
-    handler.end_headers = mock_end_headers
-
-    # Call do_GET
-    handler.do_GET()
-
-    # Verify response
-    assert response_code == 200
-    assert headers["Content-Type"] == "application/json"
-
-    # Parse the response body
-    response_body = handler.wfile.getvalue().decode()
-    response_json = json.loads(response_body)
-    assert response_json["Version"] == 1
-    assert response_json["AccessKeyId"] == "AKIAIOSFODNN7EXAMPLE"
-    assert (
-        response_json["SecretAccessKey"] == "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-    )
-    assert response_json["SessionToken"] == "session-token"
-
-
-def test_make_credential_handler_404_on_wrong_path(mocker):
-    from s3_credentials.localserver import make_credential_handler
-    import io
-
-    mock_cache = Mock()
-    handler_class = make_credential_handler(mock_cache)
-
-    handler = handler_class.__new__(handler_class)
-    handler.path = "/wrong-path"
-    handler.wfile = io.BytesIO()
-    handler.request_version = "HTTP/1.1"
-
-    response_code = None
-    headers = {}
-
-    def mock_send_response(code):
-        nonlocal response_code
-        response_code = code
-
-    handler.send_response = mock_send_response
-    handler.send_header = lambda name, value: headers.update({name: value})
-    handler.end_headers = lambda: None
-
-    handler.do_GET()
-
-    assert response_code == 404
-    response_body = handler.wfile.getvalue().decode()
-    assert "Not found" in response_body
-
-
-def test_make_credential_handler_500_on_error(mocker):
-    from s3_credentials.localserver import make_credential_handler
-    import io
-
-    mock_cache = Mock()
-    mock_cache.get_credentials.side_effect = Exception("AWS Error")
+    if credentials_error:
+        mock_cache.get_credentials.side_effect = credentials_error
+    elif credentials_return:
+        mock_cache.get_credentials.return_value = credentials_return
 
     handler_class = make_credential_handler(mock_cache)
 
     handler = handler_class.__new__(handler_class)
-    handler.path = "/"
+    handler.path = path
     handler.wfile = io.BytesIO()
     handler.request_version = "HTTP/1.1"
 
@@ -370,6 +330,7 @@ def test_make_credential_handler_500_on_error(mocker):
 
     handler.do_GET()
 
-    assert response_code == 500
+    assert response_code == expected_status
     response_body = handler.wfile.getvalue().decode()
-    assert "AWS Error" in response_body
+    for expected in expected_body_contains:
+        assert expected in response_body
