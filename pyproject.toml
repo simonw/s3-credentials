@@ -1,6 +1,6 @@
 [project]
 name = "s3-credentials"
-version = "0.16.1"
+version = "0.17"
 description = "A tool for creating credentials for accessing S3 buckets"
 readme = "README.md"
 authors = [{name = "Simon Willison"}]
