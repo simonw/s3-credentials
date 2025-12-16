@@ -4,7 +4,9 @@ import botocore
 import click
 import configparser
 from csv import DictWriter
+import datetime
 import fnmatch
+from http.server import HTTPServer, BaseHTTPRequestHandler
 import io
 import itertools
 import json
@@ -14,6 +16,8 @@ import pathlib
 import re
 import sys
 import textwrap
+import threading
+import time
 from . import policies
 
 PUBLIC_ACCESS_BLOCK_CONFIGURATION = {
@@ -140,6 +144,27 @@ class DurationParam(click.ParamType):
         # Must be between 15 minutes and 12 hours
         if not (15 * 60 <= integer <= 12 * 60 * 60):
             self.fail("Duration must be between 15 minutes and 12 hours")
+        return integer
+
+
+class RefreshIntervalParam(click.ParamType):
+    "Parses refresh interval values like 30s, 5m, 1h"
+    name = "refresh_interval"
+    pattern = re.compile(r"^(\d+)(m|h|s)?$")
+
+    def convert(self, value, param, ctx):
+        match = self.pattern.match(value)
+        if match is None:
+            self.fail("Refresh interval must be of form 30s or 5m or 1h")
+        integer_string, suffix = match.groups()
+        integer = int(integer_string)
+        if suffix == "m":
+            integer *= 60
+        elif suffix == "h":
+            integer *= 3600
+        # Must be at least 1 second
+        if integer < 1:
+            self.fail("Refresh interval must be at least 1 second")
         return integer
 
 
@@ -1636,6 +1661,263 @@ def set_public_access_block(
         f"Updated public access block settings for bucket '{bucket}': {public_access_block_config}",
         err=True,
     )
+
+
+class CredentialCache:
+    """Thread-safe credential cache that regenerates credentials on expiry."""
+
+    def __init__(
+        self, iam, sts, bucket, permission, prefix, refresh_interval, extra_statements
+    ):
+        self.iam = iam
+        self.sts = sts
+        self.bucket = bucket
+        self.permission = permission
+        self.prefix = prefix
+        self.refresh_interval = refresh_interval
+        self.extra_statements = extra_statements
+        self._credentials = None
+        self._expiry_time = None
+        self._lock = threading.Lock()
+        self._generating = False
+
+    def _generate_policy(self):
+        """Generate the IAM policy for bucket access."""
+        statements = []
+        if self.permission == "read-write":
+            statements.extend(policies.read_write_statements(self.bucket, self.prefix))
+        elif self.permission == "read-only":
+            statements.extend(policies.read_only_statements(self.bucket, self.prefix))
+        elif self.permission == "write-only":
+            statements.extend(policies.write_only_statements(self.bucket, self.prefix))
+        if self.extra_statements:
+            statements.extend(self.extra_statements)
+        return policies.wrap_policy(statements)
+
+    def _generate_credentials(self):
+        """Generate new temporary credentials using STS assume_role."""
+        s3_role_arn = ensure_s3_role_exists(self.iam, self.sts)
+        # Duration should be refresh_interval + buffer, but must be between 15min and 12h
+        # Add 60 seconds buffer to ensure credentials don't expire mid-request
+        duration = max(15 * 60, min(self.refresh_interval + 60, 12 * 60 * 60))
+
+        policy_document = self._generate_policy()
+        credentials_response = self.sts.assume_role(
+            RoleArn=s3_role_arn,
+            RoleSessionName="s3.{permission}.{bucket}".format(
+                permission=self.permission,
+                bucket=self.bucket,
+            ),
+            Policy=json.dumps(policy_document),
+            DurationSeconds=duration,
+        )
+        return credentials_response["Credentials"]
+
+    def get_credentials(self):
+        """Get cached credentials, regenerating if expired or about to expire."""
+        current_time = time.time()
+
+        # Check if we need new credentials
+        with self._lock:
+            if self._credentials is not None and self._expiry_time is not None:
+                # Return cached credentials if still valid
+                if current_time < self._expiry_time:
+                    return self._credentials
+
+            # Need to generate new credentials
+            # Check if another thread is already generating
+            if self._generating:
+                # Wait for the other thread to finish
+                while self._generating:
+                    self._lock.release()
+                    time.sleep(0.1)
+                    self._lock.acquire()
+                return self._credentials
+
+            # Mark that we're generating
+            self._generating = True
+
+        try:
+            # Generate new credentials outside the lock
+            credentials = self._generate_credentials()
+            with self._lock:
+                self._credentials = credentials
+                # Set expiry time to refresh_interval from now
+                self._expiry_time = current_time + self.refresh_interval
+                self._generating = False
+            return credentials
+        except Exception:
+            with self._lock:
+                self._generating = False
+            raise
+
+
+def make_credential_handler(credential_cache):
+    """Create an HTTP request handler class with access to the credential cache."""
+
+    class CredentialHandler(BaseHTTPRequestHandler):
+        def log_message(self, format, *args):
+            # Log to stderr with timestamp
+            click.echo(
+                "{} - {}".format(
+                    datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    format % args,
+                ),
+                err=True,
+            )
+
+        def do_GET(self):
+            if self.path != "/":
+                self.send_response(404)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Not found"}).encode())
+                return
+
+            try:
+                credentials = credential_cache.get_credentials()
+                response_data = {
+                    "AccessKeyId": credentials["AccessKeyId"],
+                    "SecretAccessKey": credentials["SecretAccessKey"],
+                    "SessionToken": credentials["SessionToken"],
+                    "Expiration": (
+                        credentials["Expiration"].isoformat()
+                        if hasattr(credentials["Expiration"], "isoformat")
+                        else str(credentials["Expiration"])
+                    ),
+                }
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(response_data, indent=2).encode())
+            except Exception as e:
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+
+    return CredentialHandler
+
+
+@cli.command()
+@click.argument("bucket")
+@click.option(
+    "-p",
+    "--port",
+    type=int,
+    default=8094,
+    help="Port to run the server on (default: 8094)",
+)
+@click.option(
+    "--host",
+    default="localhost",
+    help="Host to bind the server to (default: localhost)",
+)
+@click.option("--read-only", help="Only allow reading from the bucket", is_flag=True)
+@click.option("--write-only", help="Only allow writing to the bucket", is_flag=True)
+@click.option(
+    "--prefix", help="Restrict to keys starting with this prefix", default="*"
+)
+@click.option(
+    "extra_statements",
+    "--statement",
+    multiple=True,
+    type=StatementParam(),
+    help="JSON statement to add to the policy",
+)
+@click.option(
+    "--refresh-interval",
+    type=RefreshIntervalParam(),
+    required=True,
+    help="How often to refresh credentials, e.g. 30s, 5m, 1h",
+)
+@common_boto3_options
+def localserver(
+    bucket,
+    port,
+    host,
+    read_only,
+    write_only,
+    prefix,
+    extra_statements,
+    refresh_interval,
+    **boto_options,
+):
+    """
+    Start a localhost server that serves S3 credentials.
+
+    The server responds to GET requests on / with JSON containing temporary
+    AWS credentials that allow access to the specified bucket.
+
+    Credentials are cached and refreshed automatically based on the
+    --refresh-interval setting.
+
+    To start a server that serves read-only credentials for a bucket,
+    refreshing every 5 minutes:
+
+        s3-credentials localserver my-bucket --read-only --refresh-interval 5m
+
+    To run on a different port:
+
+        s3-credentials localserver my-bucket --refresh-interval 5m --port 9000
+    """
+    if read_only and write_only:
+        raise click.ClickException(
+            "Cannot use --read-only and --write-only at the same time"
+        )
+    extra_statements = list(extra_statements)
+
+    permission = "read-write"
+    if read_only:
+        permission = "read-only"
+    if write_only:
+        permission = "write-only"
+
+    # Create AWS clients
+    iam = make_client("iam", **boto_options)
+    sts = make_client("sts", **boto_options)
+    s3 = make_client("s3", **boto_options)
+
+    # Verify bucket exists
+    if not bucket_exists(s3, bucket):
+        raise click.ClickException("Bucket does not exist: {}".format(bucket))
+
+    # Create credential cache
+    credential_cache = CredentialCache(
+        iam=iam,
+        sts=sts,
+        bucket=bucket,
+        permission=permission,
+        prefix=prefix,
+        refresh_interval=refresh_interval,
+        extra_statements=extra_statements,
+    )
+
+    # Pre-generate credentials to catch any errors early
+    click.echo("Generating initial credentials...", err=True)
+    try:
+        credential_cache.get_credentials()
+    except Exception as e:
+        raise click.ClickException("Failed to generate credentials: {}".format(e))
+
+    # Create and start server
+    handler = make_credential_handler(credential_cache)
+    server = HTTPServer((host, port), handler)
+
+    click.echo(
+        "Serving {} credentials for bucket '{}' at http://{}:{}/".format(
+            permission, bucket, host, port
+        ),
+        err=True,
+    )
+    click.echo("Refresh interval: {} seconds".format(refresh_interval), err=True)
+    click.echo("Press Ctrl+C to stop", err=True)
+
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        click.echo("\nShutting down server...", err=True)
+        server.shutdown()
 
 
 def output(iterator, headers, nl, csv, tsv):
