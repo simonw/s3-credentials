@@ -29,10 +29,11 @@ Once the server is running, fetch credentials with:
 curl http://localhost:8094/
 ```
 
-This returns JSON like:
+This returns JSON in the [AWS credential_process format](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sourcing-external.html):
 
 ```json
 {
+  "Version": 1,
   "AccessKeyId": "ASIAWXFXAIOZPAHAYHUG",
   "SecretAccessKey": "Nrnoc...",
   "SessionToken": "FwoGZXIvYXd...mr9Fjs=",
