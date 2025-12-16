@@ -1,4 +1,5 @@
 """Tests for the localserver command and related functionality."""
+
 import botocore
 from click.testing import CliRunner
 from s3_credentials.cli import cli
@@ -18,9 +19,7 @@ def test_localserver_missing_duration():
 
 def test_localserver_invalid_duration():
     runner = CliRunner()
-    result = runner.invoke(
-        cli, ["localserver", "my-bucket", "--duration", "5s"]
-    )
+    result = runner.invoke(cli, ["localserver", "my-bucket", "--duration", "5s"])
     assert result.exit_code == 2
     assert "Duration must be between 15 minutes and 12 hours" in result.output
 
@@ -182,7 +181,9 @@ def test_credential_cache_refreshes_after_duration(mocker):
         ("write-only", "write-only"),
     ),
 )
-def test_credential_cache_permission_in_session_name(mocker, permission, expected_permission):
+def test_credential_cache_permission_in_session_name(
+    mocker, permission, expected_permission
+):
     from s3_credentials.localserver import CredentialCache
 
     mock_iam = Mock()
@@ -307,7 +308,9 @@ def test_make_credential_handler_returns_credentials(mocker):
     response_json = json.loads(response_body)
     assert response_json["Version"] == 1
     assert response_json["AccessKeyId"] == "AKIAIOSFODNN7EXAMPLE"
-    assert response_json["SecretAccessKey"] == "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+    assert (
+        response_json["SecretAccessKey"] == "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+    )
     assert response_json["SessionToken"] == "session-token"
 
 

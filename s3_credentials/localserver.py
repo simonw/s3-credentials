@@ -1,6 +1,7 @@
 """
 Local server for serving S3 credentials via HTTP.
 """
+
 import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
