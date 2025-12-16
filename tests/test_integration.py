@@ -335,7 +335,7 @@ def get_output(*args, input=None):
         result = runner.invoke(cli, args, catch_exceptions=False, input=input)
     if result.exit_code != 0:
         raise GetOutputError(result.output)
-    return result.output
+    return result.stdout
 
 
 def read_file(s3, bucket, path):
