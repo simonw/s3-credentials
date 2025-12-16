@@ -47,6 +47,7 @@ Commands:
   list-roles               List roles
   list-user-policies       List inline policies for specified users
   list-users               List all users for this account
+  localserver              Start a localhost server that serves S3...
   policy                   Output generated JSON policy for one or more...
   put-object               Upload an object to an S3 bucket
   put-objects              Upload multiple objects to an S3 bucket
@@ -419,6 +420,44 @@ Options:
   --endpoint-url TEXT   Custom endpoint URL
   -a, --auth FILENAME   Path to JSON/INI file containing credentials
   --help                Show this message and exit.
+```
+## s3-credentials localserver --help
+
+```
+Usage: s3-credentials localserver [OPTIONS] BUCKET
+
+  Start a localhost server that serves S3 credentials.
+
+  The server responds to GET requests on / with JSON containing temporary AWS
+  credentials that allow access to the specified bucket.
+
+  Credentials are cached and refreshed automatically based on the --duration
+  setting.
+
+  To start a server that serves read-only credentials for a bucket, with
+  credentials valid for 1 hour:
+
+      s3-credentials localserver my-bucket --read-only --duration 1h
+
+  To run on a different port:
+
+      s3-credentials localserver my-bucket --duration 1h --port 9000
+
+Options:
+  -p, --port INTEGER       Port to run the server on (default: 8094)
+  --host TEXT              Host to bind the server to (default: localhost)
+  --read-only              Only allow reading from the bucket
+  --write-only             Only allow writing to the bucket
+  --prefix TEXT            Restrict to keys starting with this prefix
+  --statement STATEMENT    JSON statement to add to the policy
+  -d, --duration DURATION  How long should credentials be valid for, e.g. 15m,
+                           1h, 12h  [required]
+  --access-key TEXT        AWS access key ID
+  --secret-key TEXT        AWS secret access key
+  --session-token TEXT     AWS session token
+  --endpoint-url TEXT      Custom endpoint URL
+  -a, --auth FILENAME      Path to JSON/INI file containing credentials
+  --help                   Show this message and exit.
 ```
 ## s3-credentials policy --help
 
