@@ -173,7 +173,7 @@ class StatementParam(click.ParamType):
 @click.option("--read-only", help="Only allow reading from the bucket", is_flag=True)
 @click.option("--write-only", help="Only allow writing to the bucket", is_flag=True)
 @click.option(
-    "--prefix", help="Restrict to keys starting with this prefix", default="*"
+    "--prefix", help="Restrict to keys starting with this prefix e.g. foo/", default="*"
 )
 @click.option(
     "extra_statements",

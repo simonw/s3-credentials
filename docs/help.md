@@ -475,7 +475,7 @@ Usage: s3-credentials policy [OPTIONS] BUCKETS...
 Options:
   --read-only            Only allow reading from the bucket
   --write-only           Only allow writing to the bucket
-  --prefix TEXT          Restrict to keys starting with this prefix
+  --prefix TEXT          Restrict to keys starting with this prefix e.g. foo/
   --statement STATEMENT  JSON statement to add to the policy
   --public-bucket        Bucket policy for allowing public access
   --help                 Show this message and exit.
