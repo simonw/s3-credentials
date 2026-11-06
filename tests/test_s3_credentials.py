@@ -293,6 +293,9 @@ READ_WRITE_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow",
 READ_ONLY_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:ListBucket", "s3:GetBucketLocation"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectAcl", "s3:GetObjectLegalHold", "s3:GetObjectRetention", "s3:GetObjectTagging"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}'
 WRITE_ONLY_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:PutObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}]}'
 PREFIX_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:GetBucketLocation"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": ["s3:ListBucket"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"], "Condition": {"StringLike": {"s3:prefix": ["my-prefix/*"]}}}, {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectAcl", "s3:GetObjectLegalHold", "s3:GetObjectRetention", "s3:GetObjectTagging"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/my-prefix/*"]}, {"Effect": "Allow", "Action": ["s3:PutObject", "s3:DeleteObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/my-prefix/*"]}]}'
+MULTIPLE_PREFIX_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:GetBucketLocation"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": ["s3:ListBucket"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"], "Condition": {"StringLike": {"s3:prefix": ["prefix-1/*", "prefix-2/*"]}}}, {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectAcl", "s3:GetObjectLegalHold", "s3:GetObjectRetention", "s3:GetObjectTagging"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/prefix-1/*", "arn:aws:s3:::pytest-bucket-simonw-1/prefix-2/*"]}, {"Effect": "Allow", "Action": ["s3:PutObject", "s3:DeleteObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/prefix-1/*", "arn:aws:s3:::pytest-bucket-simonw-1/prefix-2/*"]}]}'
+MULTIPLE_PREFIX_READ_ONLY_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:GetBucketLocation"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": ["s3:ListBucket"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"], "Condition": {"StringLike": {"s3:prefix": ["prefix-1/*", "prefix-2/*"]}}}, {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectAcl", "s3:GetObjectLegalHold", "s3:GetObjectRetention", "s3:GetObjectTagging"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/prefix-1/*", "arn:aws:s3:::pytest-bucket-simonw-1/prefix-2/*"]}]}'
+MULTIPLE_PREFIX_WRITE_ONLY_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:PutObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/prefix-1/*", "arn:aws:s3:::pytest-bucket-simonw-1/prefix-2/*"]}]}'
 EXTRA_STATEMENTS_POLICY = '{"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:ListBucket", "s3:GetBucketLocation"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1"]}, {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectAcl", "s3:GetObjectLegalHold", "s3:GetObjectRetention", "s3:GetObjectTagging"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}, {"Effect": "Allow", "Action": ["s3:PutObject", "s3:DeleteObject"], "Resource": ["arn:aws:s3:::pytest-bucket-simonw-1/*"]}, {"Effect": "Allow", "Action": "textract:*", "Resource": "*"}]}'
 
 # Used by both test_create and test_create_duration
@@ -302,6 +305,12 @@ CREATE_TESTS = (
     (["--read-only"], False, READ_ONLY_POLICY, "read-only"),
     (["--write-only"], False, WRITE_ONLY_POLICY, "write-only"),
     (["--prefix", "my-prefix/"], False, PREFIX_POLICY, "read-write"),
+    (
+        ["--prefix", "prefix-1/", "--prefix", "prefix-2/"],
+        False,
+        MULTIPLE_PREFIX_POLICY,
+        "read-write",
+    ),
     (["--policy", "POLICYFILEPATH"], False, CUSTOM_POLICY, "custom"),
     (["--policy", "-"], True, CUSTOM_POLICY, "custom"),
     (["--policy", CUSTOM_POLICY], False, CUSTOM_POLICY, "custom"),
@@ -897,6 +906,18 @@ def test_auth_option_errors(extra_option):
         (["--read-only"], READ_ONLY_POLICY),
         (["--write-only"], WRITE_ONLY_POLICY),
         (["--prefix", "my-prefix/"], PREFIX_POLICY),
+        (
+            ["--prefix", "prefix-1/", "--prefix", "prefix-2/"],
+            MULTIPLE_PREFIX_POLICY,
+        ),
+        (
+            ["--read-only", "--prefix", "prefix-1/", "--prefix", "prefix-2/"],
+            MULTIPLE_PREFIX_READ_ONLY_POLICY,
+        ),
+        (
+            ["--write-only", "--prefix", "prefix-1/", "--prefix", "prefix-2/"],
+            MULTIPLE_PREFIX_WRITE_ONLY_POLICY,
+        ),
         (
             [
                 "--statement",
