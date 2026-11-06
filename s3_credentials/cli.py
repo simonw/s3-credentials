@@ -173,7 +173,10 @@ class StatementParam(click.ParamType):
 @click.option("--read-only", help="Only allow reading from the bucket", is_flag=True)
 @click.option("--write-only", help="Only allow writing to the bucket", is_flag=True)
 @click.option(
-    "--prefix", help="Restrict to keys starting with this prefix e.g. foo/", default="*"
+    "prefixes",
+    "--prefix",
+    multiple=True,
+    help="Restrict to keys starting with this prefix e.g. foo/",
 )
 @click.option(
     "extra_statements",
@@ -187,7 +190,7 @@ class StatementParam(click.ParamType):
     help="Bucket policy for allowing public access",
     is_flag=True,
 )
-def policy(buckets, read_only, write_only, prefix, extra_statements, public_bucket):
+def policy(buckets, read_only, write_only, prefixes, extra_statements, public_bucket):
     """
     Output generated JSON policy for one or more buckets
 
@@ -198,6 +201,7 @@ def policy(buckets, read_only, write_only, prefix, extra_statements, public_buck
         s3-credentials policy my-bucket --read-only
     """
     "Generate JSON policy for one or more buckets"
+    prefix = list(prefixes) if prefixes else "*"
     if public_bucket:
         if len(buckets) != 1:
             raise click.ClickException(
@@ -258,7 +262,10 @@ def policy(buckets, read_only, write_only, prefix, extra_statements, public_buck
     is_flag=True,
 )
 @click.option(
-    "--prefix", help="Restrict to keys starting with this prefix", default="*"
+    "prefixes",
+    "--prefix",
+    multiple=True,
+    help="Restrict to keys starting with this prefix",
 )
 @click.option(
     "--public",
@@ -302,7 +309,7 @@ def create(
     duration,
     username,
     create_bucket,
-    prefix,
+    prefixes,
     public,
     website,
     read_only,
@@ -331,6 +338,7 @@ def create(
 
         s3-credentials create my-existing-bucket --write-only -d 15m
     """
+    prefix = list(prefixes) if prefixes else "*"
     if read_only and write_only:
         raise click.ClickException(
             "Cannot use --read-only and --write-only at the same time"
@@ -1655,7 +1663,10 @@ def set_public_access_block(
 @click.option("--read-only", help="Only allow reading from the bucket", is_flag=True)
 @click.option("--write-only", help="Only allow writing to the bucket", is_flag=True)
 @click.option(
-    "--prefix", help="Restrict to keys starting with this prefix", default="*"
+    "prefixes",
+    "--prefix",
+    multiple=True,
+    help="Restrict to keys starting with this prefix",
 )
 @click.option(
     "extra_statements",
@@ -1678,7 +1689,7 @@ def localserver(
     host,
     read_only,
     write_only,
-    prefix,
+    prefixes,
     extra_statements,
     duration,
     **boto_options,
@@ -1703,6 +1714,7 @@ def localserver(
     """
     from . import localserver as localserver_module
 
+    prefix = list(prefixes) if prefixes else "*"
     if read_only and write_only:
         raise click.ClickException(
             "Cannot use --read-only and --write-only at the same time"

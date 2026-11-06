@@ -1,3 +1,15 @@
+def _normalize_prefixes(prefix):
+    if isinstance(prefix, str):
+        prefixes = [prefix]
+    elif prefix is None:
+        prefixes = ["*"]
+    else:
+        prefixes = list(prefix)
+    if not prefixes:
+        prefixes = ["*"]
+    return [p + "*" if not p.endswith("*") else p for p in prefixes]
+
+
 def read_write(bucket, prefix="*", extra_statements=None):
     statements = read_write_statements(bucket, prefix=prefix)
     if extra_statements:
@@ -7,13 +19,12 @@ def read_write(bucket, prefix="*", extra_statements=None):
 
 def read_write_statements(bucket, prefix="*"):
     # https://github.com/simonw/s3-credentials/issues/24
-    if not prefix.endswith("*"):
-        prefix += "*"
-    return read_only_statements(bucket, prefix) + [
+    prefixes = _normalize_prefixes(prefix)
+    return read_only_statements(bucket, prefixes) + [
         {
             "Effect": "Allow",
             "Action": ["s3:PutObject", "s3:DeleteObject"],
-            "Resource": ["arn:aws:s3:::{}/{}".format(bucket, prefix)],
+            "Resource": ["arn:aws:s3:::{}/{}".format(bucket, p) for p in prefixes],
         }
     ]
 
@@ -28,9 +39,8 @@ def read_only(bucket, prefix="*", extra_statements=None):
 def read_only_statements(bucket, prefix="*"):
     # https://github.com/simonw/s3-credentials/issues/23
     statements = []
-    if not prefix.endswith("*"):
-        prefix += "*"
-    if prefix != "*":
+    prefixes = _normalize_prefixes(prefix)
+    if prefixes != ["*"]:
         statements.append(
             {
                 "Effect": "Allow",
@@ -46,7 +56,7 @@ def read_only_statements(bucket, prefix="*"):
                 "Condition": {
                     "StringLike": {
                         # Note that prefix must end in / if user wants to limit to a folder
-                        "s3:prefix": [prefix]
+                        "s3:prefix": prefixes
                     }
                 },
             }
@@ -71,7 +81,7 @@ def read_only_statements(bucket, prefix="*"):
                 "s3:GetObjectRetention",
                 "s3:GetObjectTagging",
             ],
-            "Resource": ["arn:aws:s3:::{}/{}".format(bucket, prefix)],
+            "Resource": ["arn:aws:s3:::{}/{}".format(bucket, p) for p in prefixes],
         },
     ]
 
@@ -85,13 +95,12 @@ def write_only(bucket, prefix="*", extra_statements=None):
 
 def write_only_statements(bucket, prefix="*"):
     # https://github.com/simonw/s3-credentials/issues/25
-    if not prefix.endswith("*"):
-        prefix += "*"
+    prefixes = _normalize_prefixes(prefix)
     return [
         {
             "Effect": "Allow",
             "Action": ["s3:PutObject"],
-            "Resource": ["arn:aws:s3:::{}/{}".format(bucket, prefix)],
+            "Resource": ["arn:aws:s3:::{}/{}".format(bucket, p) for p in prefixes],
         }
     ]
 
