@@ -916,6 +916,17 @@ def test_policy(options, expected):
     assert json.loads(result.output) == json.loads(expected)
 
 
+def test_policy_read_only_and_write_only():
+    runner = CliRunner()
+    result = runner.invoke(
+        cli, ["policy", "pytest-bucket-simonw-1", "--read-only", "--write-only"]
+    )
+    assert result.exit_code == 1
+    assert (
+        "Cannot use --read-only and --write-only at the same time" in result.output
+    )
+
+
 @pytest.mark.parametrize(
     "options,expected",
     (

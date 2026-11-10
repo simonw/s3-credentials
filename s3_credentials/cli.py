@@ -198,6 +198,10 @@ def policy(buckets, read_only, write_only, prefix, extra_statements, public_buck
         s3-credentials policy my-bucket --read-only
     """
     "Generate JSON policy for one or more buckets"
+    if read_only and write_only:
+        raise click.ClickException(
+            "Cannot use --read-only and --write-only at the same time"
+        )
     if public_bucket:
         if len(buckets) != 1:
             raise click.ClickException(
